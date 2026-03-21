@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Environment & secrets
+.env
+.env.*
+discord_token.txt
+proxies.txt
+
+# Database
+database/
+
+# IDE / editor
+.vscode/
+.idea/
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Claude Code
+.claude/
+
+# Archives
+*.zip
+
+# Scraped data
+invites.json
+invites.csv
+invites_detailed.json

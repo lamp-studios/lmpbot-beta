@@ -1,0 +1,14 @@
+module.exports = {
+    name: "listcmds",
+    type: "messageCreate",
+    code: `
+$onlyForUsers[;$botOwnerID]
+
+$let[cmds;$applicationCommands]
+
+Registered Application Commands:
+$get[cmds]
+
+Total: $applicationCommandCount
+    `
+}

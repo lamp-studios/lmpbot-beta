@@ -1,0 +1,35 @@
+module.exports = {
+  data: {
+    name: "find_tags",
+    description: "Find servers with guild tags from invite list.",
+    default_member_permissions: "8",
+    options: [
+      {
+        name: "channel",
+        description: "Channel to send guild tags info in.",
+        type: 7,
+        required: false
+      },
+      {
+        name: "min_members",
+        description: "Minimum member count filter (default: 0)",
+        type: 4,
+        required: false
+      }
+    ]
+  },
+  code: `
+$defer
+$let[fileContent;$readFile[./invites.json]]
+$jsonLoad[invs;$get[fileContent]]
+$let[minMembers;$or[$option[min_members];0]]
+$let[found;0]
+$let[channelID;$or[$option[channel];]]
+$jsonLoad[tags;[]]
+$arrayForEach[invs;code;$let[st;$httpRequest[https://discord.com/api/v10/invites/$env[code]?with_counts=true;Get;res]]$if[$get[st]==200]$let[tagText;$env[res;profile;tag]]$if[$get[tagText]!=]$let[found;$sum[$get[found];1]]$if[$env[res;approximate_member_count]>=$get[minMembers]]$let[serverData;{"name":"$env[res;guild;name]","tag":"$get[tagText]","members":$env[res;approximate_member_count],"invite":"$env[code]"}]$arrayPush[tags;$get[serverData]]$if[$stringLength[$get[channelID]]>0]$sendMessage[$get[channelID];Server: $env[res;guild;name] - Tag: $get[tagText] - Members: $env[res;approximate_member_count] - Invite: discord.gg/$env[code]]$endif$endif$endif$endif]
+$writeFile[./tags.json;$jsonStringify[tags;2]]
+$let[resultMsg;Done! Found $get[found] servers with tags out of $arrayLength[invs] invites. Saved to tags.json]
+$if[$stringLength[$get[channelID]]>0]$let[resultMsg;$get[resultMsg] and sent to channel]$endif
+$interactionUpdate[$get[resultMsg].]
+`
+};

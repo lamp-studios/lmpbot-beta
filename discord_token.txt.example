@@ -1,0 +1,19 @@
+# Discord Bot Token
+#
+# Using a bot token gives you MUCH higher rate limits (5000 requests/10min vs 50/10min)
+#
+# How to get a bot token:
+# 1. Go to https://discord.com/developers/applications
+# 2. Click "New Application"
+# 3. Give it a name (e.g., "Invite Scraper")
+# 4. Go to the "Bot" section
+# 5. Click "Add Bot"
+# 6. Under "Token", click "Reset Token" and copy it
+# 7. Paste your token below (remove the # comment symbol)
+#
+# IMPORTANT: Keep your token secret! Never share it or commit it to git
+#
+# Example (replace with your real token):
+# YOUR_BOT_TOKEN_HERE
+
+# Remove this file's .example extension and paste your token on a new line

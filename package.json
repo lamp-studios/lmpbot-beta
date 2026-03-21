@@ -1,0 +1,24 @@
+{
+    "name": "lmp-bot-beta",
+    "version": "1.0.0",
+    "description": "A Discord bot created with BotForge.",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js",
+        "scrape": "node server_scraper.js"
+    },
+    "dependencies": {
+        "@dotenvx/dotenvx": "^1.51.1",
+        "@quoriel/api": "^1.5.2",
+        "@quoriel/pterodactyl": "github:quoriel/pterodactyl",
+        "@tryforge/forge.canvas": "^1.2.2",
+        "@tryforge/forge.db": "^2.1.0",
+        "@tryforge/forgescript": "^2.6.0",
+        "dotenv": "^17.2.3",
+        "sqlite3": "^5.1.7",
+        "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.55.0"
+    },
+    "optionalDependencies": {
+        "https-proxy-agent": "^7.0.2"
+    }
+}

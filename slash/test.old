@@ -1,0 +1,10 @@
+module.exports = {
+  type: "interactionCreate",
+  code: `
+$interactionReply[Test command works!]
+`,
+  data: {
+    name: "test",
+    description: "A simple test command"
+  }
+};
