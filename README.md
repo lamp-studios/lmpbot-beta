@@ -69,8 +69,8 @@ After the bot is online, run `.up` in Discord to register slash commands.
 ## Tech Stack
 
 - [ForgeScript](https://docs.botforge.org) - Discord bot framework
-- [ForgeDB](https://github.com/tryforge/forge.db) - SQLite database extension
-- [ForgeCanvas](https://github.com/tryforge/forge.canvas) - Image generation
+- [ForgeDB](https://github.com/tryforge/ForgeDB) - SQLite database extension
+- [ForgeCanvas](https://github.com/tryforge/forgecanvas) - Image generation
 
 ## License
 
