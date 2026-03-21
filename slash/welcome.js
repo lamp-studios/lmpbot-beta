@@ -7,7 +7,7 @@ $fetchMembers[$guildID]
 $arrayLoad[members;, ;$guildMemberIDs[$guildID;, ]]
 $arrayForEach[members;i;
 $if[$option[mentions]==true;$allowAllMentions;$disableAllMentions]
-$sendMessage[$option[channel];Welcome <@$env[i]> to **$guildName[$guildID]**!;false]]
+$sendMessage[$option[channel];\nWelcome <@$env[i]> to **$guildName[$guildID]**!\n\nMake sure to read the rules!;false]]
 Sending welcome messages...
 `,
   data: {
