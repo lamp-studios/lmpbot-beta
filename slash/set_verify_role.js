@@ -1,10 +1,11 @@
 module.exports = {
   code: `
-$if[$authorID==$botOwnerID;
+$if[$option[role]==;
+$deleteGuildVar[verification_role;$guildID]
+Removed verification role!
+$ephemeral;
 $setGuildVar[verification_role;$option[role];$guildID]
 Set $option[role] as verified role successfully!
-$ephemeral
-;You do not have permission!
 $ephemeral]`,
   data: {
     name: "set_verification_role",
@@ -15,7 +16,7 @@ $ephemeral]`,
         name: "role",
         description: "Role to set as verification role.",
         type: 8, // ROLE
-        required: true
+        required: false
       }
     ]
   }
