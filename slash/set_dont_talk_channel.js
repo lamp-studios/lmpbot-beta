@@ -1,11 +1,11 @@
 module.exports = {
   code: `
-$if[$option[channel]!=!;
-$setGuildVar[dont_talk_channel;$option[channel];$guildID]
-Set $option[channel] as dont_talk channel successfully!
-$ephemeral
-;$deleteGuildVar[dont_talk_channel;$guildID]
+$if[$option[channel]==!;
+$deleteGuildVar[dont_talk_channel;$guildID]
 Removed dont_talk channel!
+$ephemeral
+;$setGuildVar[dont_talk_channel;$option[channel];$guildID]
+Set $option[channel] as dont_talk channel successfully!
 $ephemeral]
   `,
   data: {
