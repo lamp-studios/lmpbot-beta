@@ -70,7 +70,7 @@ This will:
 | `/help` | Everyone | Shows all available commands |
 | `/welcome` | Admin | Sends welcome messages for all members to a channel |
 | `/members` | Everyone | Shows all verified members |
-| `/set_verification_role` | Owner | Sets the role granted on verification |
+| `/set_verification_role` | Admin | Sets the role granted on verification |
 | `/set_bot_channel` | Admin | Sets a channel for bot detection (auto-kick/timeout on message) |
 | `/createserver` | Admin | Creates a game server on the panel |
 
