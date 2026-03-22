@@ -1,6 +1,6 @@
 module.exports = {
   code: `
-$if[$option[channel]==!;
+$if[$option[channel]==;
 $deleteGuildVar[dont_talk_channel;$guildID]
 Removed dont_talk channel!
 $ephemeral
