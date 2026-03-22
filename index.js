@@ -60,7 +60,8 @@ const client = new ForgeClient({
         "messageUpdate",
         "roleCreate",
         "roleDelete",
-        "roleUpdate"
+        "roleUpdate",
+        "threadCreate"
     ],
     extensions: [
         db,

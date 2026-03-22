@@ -1,5 +1,5 @@
 module.exports = {
 type: "channelCreate",
 code: `
-$if[$channelType[$channelID]==PublicThread;hi]
+$if[$channelType[$channelID]==GuildForum;$log[hi]]
 `}
