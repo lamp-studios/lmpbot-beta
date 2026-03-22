@@ -14,8 +14,9 @@ A Discord bot built with [ForgeScript](https://docs.botforge.org) featuring mode
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) v18+
+- [Node.js](https://nodejs.org/) v22+
 - A [Discord bot application](https://discord.com/developers/applications) with the following privileged intents enabled:
+  - Presence Intent
   - Server Members Intent
   - Message Content Intent
 
@@ -43,6 +44,22 @@ npm start
 ```
 
 After the bot is online, run `.up` in Discord to register slash commands.
+
+### Raspberry Pi / Linux Auto-Deploy
+
+A setup script is included for Raspberry Pi or any Linux server with systemd:
+
+```bash
+chmod +x setup-lmpbot.sh && sudo ./setup-lmpbot.sh
+```
+
+This will:
+- Install Node.js v22 and build tools
+- Clone the repo and install dependencies
+- Rebuild native modules (sqlite3) for ARM
+- Prompt for your bot token and create `.env`
+- Set up a systemd service (auto-start on boot)
+- Set up an auto-updater that checks for new commits every 5 minutes
 
 ## Commands
 
