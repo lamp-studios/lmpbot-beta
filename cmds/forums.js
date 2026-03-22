@@ -1,5 +1,7 @@
 module.exports = {
-type: "threadCreate",
-code: `
-$if[$channelType[$channelID]==GuildForum;$log[hi]]
-`}
+    type: "threadCreate",
+    code: `
+$onlyIf[$djsEval[channel.new.parent?.isThreadOnly()]==true;]
+$log[New forum post created: "$channelName" by $threadOwnerID in <#$channelParentID>]
+`
+}
