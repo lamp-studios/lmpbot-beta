@@ -1,8 +1,12 @@
 module.exports = {
   code: `
+$if[$option[channel];
 $setGuildVar[dont_talk_channel;$option[channel];$guildID]
 Set $option[channel] as dont_talk channel successfully!
 $ephemeral
+;$deleteGuildVar[dont_talk_channel;$guildID]
+Removed dont_talk channel!
+$ephemeral]
   `,
   data: {
     name: "set_bot_channel",
@@ -13,7 +17,7 @@ $ephemeral
         name: "channel",
         description: "Channel to set as a dont talk channel.",
         type: 7, // CHANNEL
-        required: true
+        required: false
       }
     ]
   }
