@@ -75,7 +75,6 @@ const client = new ForgeClient({
 
 client.commands.load('./cmds');
 client.applicationCommands.load('./slash');
-client.functions.load('./funcs')
 
 // Add this to your index.js file after creating the client
 
