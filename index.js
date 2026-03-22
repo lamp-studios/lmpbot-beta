@@ -75,6 +75,7 @@ const client = new ForgeClient({
 
 client.commands.load('./cmds');
 client.applicationCommands.load('./slash');
+client.functions.load('./funcs')
 
 // Add this to your index.js file after creating the client
 
@@ -85,4 +86,5 @@ client.functions.add({
     $return[$djsEval[const fs = require('fs'); const path = require('path'); let result = ''; try { const fullPath = path.resolve('$env[filepath]'); if (fs.existsSync(fullPath)) { result = fs.readFileSync(fullPath, 'utf-8'); } } catch (error) { console.error('Error reading file:', error); } result]]
     `
 });
+
 client.login(process.env.DANGER_DONTSHARETOYKEN);
