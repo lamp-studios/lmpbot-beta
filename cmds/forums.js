@@ -6,11 +6,9 @@ $log[New forum post created: "$channelName" by $threadOwnerID in <#$channelParen
 $sendMessage[$channelID;Adding staff members for visibility...]
 $addThreadMember[$guildID;$channelID;$guildOwnerID[$guildID]]
 $fetchMembers[$guildID]
-$if[$getGuildVar[staff_role;$guildID]==;
-$arrayLoad[admins;,;$roleMembers[$guildID;$findRole[$guildID;Admin];,]]
+$let[role;$getGuildVar[staff_role;$guildID]]
+$if[$get[role]==;$let[role;$findRole[$guildID;Admin]];]
+$arrayLoad[admins;,;$roleMembers[$guildID;$get[role];,]]
 $arrayForEach[admins;uid;$addThreadMember[$guildID;$channelID;$env[uid]]]
-;$arrayLoad[admins;,;$roleMembers[$guildID;$getGuildVar[staff_role;$guildID];,]]
-$arrayForEach[admins;uid;$addThreadMember[$guildID;$channelID;$env[uid]]]
-]
 `
 }

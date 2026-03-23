@@ -3,13 +3,13 @@ module.exports = {
 $if[$option[channel]==;
 $deleteGuildVar[forum_channel;$guildID]
 Removed forum channel from adding admins in new posts!
-$ephemeral
 ;$setGuildVar[forum_channel;$option[channel];$guildID]
-Set $option[channel] as forum channel successfully!
-$ephemeral]
+Set $option[channel] as forum channel successfully!]
 
-$onlyIf[$option[role];]
+$if[$option[role]!=;
 $setGuildVar[staff_role;$option[role];$guildID]
+Staff role set to <@&$option[role]>!;]
+$ephemeral
   `,
   data: {
     name: "set_forum_channel",
