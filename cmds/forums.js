@@ -9,6 +9,8 @@ $fetchMembers[$guildID]
 $if[$getGuildVar[staff_role;$guildID]==;
 $arrayLoad[admins;,;$roleMembers[$guildID;$findRole[$guildID;Admin];,]]
 $arrayForEach[admins;uid;$addThreadMember[$guildID;$channelID;$env[uid]]]
-;]
+;$arrayLoad[admins;,;$roleMembers[$guildID;$getGuildVar[staff_role;$guildID];,]]
+$arrayForEach[admins;uid;$addThreadMember[$guildID;$channelID;$env[uid]]]
+]
 `
 }

@@ -7,6 +7,9 @@ $ephemeral
 ;$setGuildVar[forum_channel;$option[channel];$guildID]
 Set $option[channel] as forum channel successfully!
 $ephemeral]
+
+$onlyIf[$option[role];]
+$setGuildVar[staff_role;$option[role];$guildID]
   `,
   data: {
     name: "set_forum_channel",
