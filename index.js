@@ -1,6 +1,7 @@
 const { ForgeClient } = require("@tryforge/forgescript");
 const { ForgeDB } = require("@tryforge/forge.db");
 const { ForgeCanvas } = require("@tryforge/forge.canvas");
+const { ForgeColor } = require("forge.color");
 const { QuorielApi } = require("@quoriel/api");
 require('@dotenvx/dotenvx').config()
 
