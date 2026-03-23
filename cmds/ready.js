@@ -1,4 +1,5 @@
 module.exports = {
     type: "clientReady",
-    code: `$log[Successfully loaded]`
+    code: `$fetchMembers[$guildID]
+$log[Successfully loaded]`
 }
