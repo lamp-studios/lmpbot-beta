@@ -5,8 +5,8 @@ module.exports = {
     $addTextDisplay[# Bot Information]
     $addSeparator
     $addTextDisplay[**Ping**: $pingms.]
-    $addTextDisplay[**Uptime**: $uptime.]
+    $addTextDisplay[**Uptime**: $parseMS[$uptime].]
     $addTextDisplay[**OS**: $os.]
-    $addTextDisplay[**RAM/Memory**: $ram.]
+    $addTextDisplay[**RAM/Memory**: $round[$ram].]
     ;$randomColor]`
 };
