@@ -1,0 +1,30 @@
+module.exports = {
+  code: `
+$if[$option[channel]==;
+$deleteGuildVar[forum_channel;$guildID]
+Removed forum channel from adding admins in new posts!
+$ephemeral
+;$setGuildVar[forum_channel;$option[channel];$guildID]
+Set $option[channel] as forum channel successfully!
+$ephemeral]
+  `,
+  data: {
+    name: "set_forum_channel",
+    description: "Sets the forum channel to your liking, for staff to be automatically added (for default role option, requires a role named Admin) (required).",
+    default_member_permissions: 8, // Admin Only
+    options: [
+      {
+        name: "channel",
+        description: "Channel to set as a forum channel.",
+        type: 7, // CHANNEL
+        required: false
+      },
+      {
+        name: "role",
+        description: "Role to set (optional).",
+        type: 8, // ROLE
+        required: false
+      }
+    ]
+  }
+};
