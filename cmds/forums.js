@@ -1,7 +1,7 @@
 module.exports = {
     type: "threadCreate",
     code: `
-$onlyIf[$djsEval[ctx.states?.channel?.new?.parent?.isThreadOnly()]==true;]
+$onlyIf[$channelParentID==1479207101237694518;]
 $log[New forum post created: "$channelName" by $threadOwnerID in <#$channelParentID>]
 $sendMessage[$channelID;Adding staff members for visibility...]
 $addThreadMember[$guildID;$channelID;$guildOwnerID[$guildID]]
