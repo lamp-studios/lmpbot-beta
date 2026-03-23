@@ -65,7 +65,8 @@ const client = new ForgeClient({
     ],
     extensions: [
         db,
-        new ForgeCanvas()
+        new ForgeCanvas(),
+        new ForgeColor()
 	//new QuorielApi({
     		//port: 3000,
     		//path: "routes",
