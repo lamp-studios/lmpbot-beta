@@ -10,7 +10,7 @@ $ephemeral]
   `,
   data: {
     name: "set_forum_channel",
-    description: "Sets the forum channel to your liking, for staff to be automatically added (for default role option, requires a role named Admin) (required).",
+    description: "Sets the forum channel where staff are automatically added to new posts.",
     default_member_permissions: 8, // Admin Only
     options: [
       {
