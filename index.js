@@ -89,4 +89,30 @@ client.functions.add({
     `
 });
 
+// Health check endpoint for UptimeRobot
+const http = require("http");
+const startedAt = Date.now();
+
+http.createServer((req, res) => {
+    if (req.url === "/health" && req.method === "GET") {
+        const isReady = client.isReady();
+        const uptime = Math.floor((Date.now() - startedAt) / 1000);
+        const guilds = client.guilds.cache.size;
+        const ping = client.ws.ping;
+
+        res.writeHead(isReady ? 200 : 503, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({
+            status: isReady ? "online" : "offline",
+            uptime,
+            guilds,
+            ping,
+        }));
+    } else {
+        res.writeHead(404);
+        res.end();
+    }
+}).listen(3001, "127.0.0.1", () => {
+    console.log("[HEALTH] Listening on http://127.0.0.1:3001/health");
+});
+
 client.login(process.env.DANGER_DONTSHARETOYKEN);
