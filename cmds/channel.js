@@ -5,6 +5,7 @@ module.exports = {
         $c[$!timeout[$guildID;$userID;1m;Spambot]]
         $!setMemberVar[strike;1;$authorID;$guildID]
         $!sendDM[$authorID;Bot detected!!!]
-        $!kickMember[$guildID;$authorID;spambot detected]
+        $!ban[$guildID;$authorID;spambot detected;120]
+        $!unban[$guildID;$authorID;spambot detection unban system]
     ;]`,
 }
