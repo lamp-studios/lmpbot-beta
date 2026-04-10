@@ -29,3 +29,9 @@ Desktop.ini
 invites.json
 invites.csv
 invites_detailed.json
+
+# Archived/Removed
+*.old
+
+# Other
+routes/

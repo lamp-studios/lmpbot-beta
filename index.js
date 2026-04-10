@@ -79,40 +79,12 @@ const client = new ForgeClient({
 client.commands.load('./cmds');
 client.applicationCommands.load('./slash');
 
-// Add this to your index.js file after creating the client
-
 client.functions.add({
     name: "readLargeFile",
     params: ["filepath"],
     code: `
     $return[$djsEval[const fs = require('fs'); const path = require('path'); let result = ''; try { const fullPath = path.resolve('$env[filepath]'); if (fs.existsSync(fullPath)) { result = fs.readFileSync(fullPath, 'utf-8'); } } catch (error) { console.error('Error reading file:', error); } result]]
     `
-});
-
-// Health check endpoint for UptimeRobot
-const http = require("http");
-const startedAt = Date.now();
-
-http.createServer((req, res) => {
-    if (req.url === "/health" && req.method === "GET") {
-        const isReady = client.isReady();
-        const uptime = Math.floor((Date.now() - startedAt) / 1000);
-        const guilds = client.guilds.cache.size;
-        const ping = client.ws.ping;
-
-        res.writeHead(isReady ? 200 : 503, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({
-            status: isReady ? "online" : "offline",
-            uptime,
-            guilds,
-            ping,
-        }));
-    } else {
-        res.writeHead(404);
-        res.end();
-    }
-}).listen(3001, "127.0.0.1", () => {
-    console.log("[HEALTH] Listening on http://127.0.0.1:3001/health");
 });
 
 client.login(process.env.DANGER_DONTSHARETOYKEN);
