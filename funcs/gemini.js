@@ -452,6 +452,20 @@ $let[ret;$get[plc-gr-r_render-nowm]]
 $if[$get[ret]==;$callLocalFunction[fetchgemini;true]]
 ;refresh]
 $callLocalFunction[fetchgemini;false]
+$if[$and[$env[info]!=true;$charCount[$get[ret]]>2000];
+$!djsEval[
+    const text = ctx.getKeyword("ret") || ""\\;
+    const chunks = \\[\\]\\;
+    for (let i = 0\\; i < text.length\\; i += 2000) {
+        chunks.push(text.slice(i, i + 2000))\\;
+    }
+    ctx.setKeyword("grchunks_last", chunks.pop())\\;
+    ctx.setKeyword("grchunks_joined", chunks.join("|||GRSEP|||"))\\;
+]
+$arrayLoad[grchunks;|||GRSEP|||;$get[grchunks_joined]]
+$arrayForEach[grchunks;grchunk_item;$sendMessage[$channelID;$env[grchunk_item]]]
+$let[ret;$get[grchunks_last]]
+]
 $return[$get[ret]]
 `
 }
