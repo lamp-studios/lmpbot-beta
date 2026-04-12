@@ -17,5 +17,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Validate Python syntax
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: python -m py_compile main.py
+
       - name: Push to main
         run: git push origin master:main

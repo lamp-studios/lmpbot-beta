@@ -1,5 +1,8 @@
 # Dependencies
-node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
 
 # Environment & secrets
 .env
@@ -32,6 +35,3 @@ invites_detailed.json
 
 # Archived/Removed
 *.old
-
-# Other
-routes/
