@@ -7,6 +7,5 @@ module.exports = {
     $addTextDisplay[**Ping**: $pingms.]
     $addTextDisplay[**Uptime**: $parseMS[$uptime].]
     $addTextDisplay[**OS**: $os.]
-    $addTextDisplay[**RAM/Memory**: $round[$ram].]
     ;$randomColor]`
 };

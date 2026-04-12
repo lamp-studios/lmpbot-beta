@@ -78,6 +78,7 @@ const client = new ForgeClient({
 
 client.commands.load('./cmds');
 client.applicationCommands.load('./slash');
+client.functions.load('./funcs');
 
 client.functions.add({
     name: "readLargeFile",
