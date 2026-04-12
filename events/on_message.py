@@ -33,7 +33,7 @@ def setup(client: discord.Client):
         # chatbot channel: reply with gemini
         chatbot_ch = await db.get_guild_var(guild_id, "chatbot_channel")
         if chatbot_ch and str(message.channel.id) == chatbot_ch:
-            loading = await message.channel.send("Loading... ")
+            loading = await message.channel.send("Loading... <a:CircleLoader:1492857500637335685>")
             reply = await gemini.chat(message.content)
             if reply is None:
                 await loading.edit(content="Gemini API key not configured or request failed.")
