@@ -459,12 +459,12 @@ $!djsEval[
     for (let i = 0\\; i < text.length\\; i += 2000) {
         chunks.push(text.slice(i, i + 2000))\\;
     }
-    ctx.setKeyword("grchunks_last", chunks.pop())\\;
+    ctx.setKeyword("grchunks_first", chunks.shift())\\;
     ctx.setKeyword("grchunks_joined", chunks.join("|||GRSEP|||"))\\;
 ]
 $arrayLoad[grchunks;|||GRSEP|||;$get[grchunks_joined]]
 $arrayForEach[grchunks;grchunk_item;$sendMessage[$channelID;$env[grchunk_item]]]
-$let[ret;$get[grchunks_last]]
+$let[ret;$get[grchunks_first]]
 ]
 $return[$get[ret]]
 `
