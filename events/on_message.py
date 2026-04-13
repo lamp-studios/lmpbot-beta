@@ -1,5 +1,6 @@
 import platform
 import textwrap
+import time
 import traceback
 import discord
 from config import Config
@@ -7,6 +8,25 @@ from utils import db
 from utils import gemini
 
 config = Config()
+
+
+def _format_uptime(seconds: float) -> str:
+    seconds = int(seconds)
+    weeks, seconds = divmod(seconds, 7 * 24 * 3600)
+    days, seconds = divmod(seconds, 24 * 3600)
+    hours, seconds = divmod(seconds, 3600)
+    minutes, _ = divmod(seconds, 60)
+
+    parts = []
+    if weeks:
+        parts.append(f"{weeks}w")
+    if days:
+        parts.append(f"{days}d")
+    if hours:
+        parts.append(f"{hours}h")
+    if minutes:
+        parts.append(f"{minutes}m")
+    return " ".join(parts) or "0m"
 
 
 def setup(bot: discord.Bot):
@@ -56,9 +76,10 @@ def setup(bot: discord.Bot):
             await message.channel.send(f"Pong! {round(bot.latency * 1000)}ms")
 
         elif cmd == "info":
+            uptime = _format_uptime(time.time() - bot.start_time)
             embed = discord.Embed(title="Bot Information", color=discord.Color.random())
             embed.add_field(name="Ping", value=f"{round(bot.latency * 1000)}ms")
-            embed.add_field(name="Uptime", value="use /help for more")
+            embed.add_field(name="Uptime", value=uptime)
             embed.add_field(name="OS", value=platform.system())
             await message.channel.send(embed=embed)
 

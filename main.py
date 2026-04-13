@@ -1,3 +1,4 @@
+import time
 import discord
 import importlib
 import pkgutil
@@ -11,6 +12,7 @@ intents.message_content = True
 intents.members = True
 
 bot = discord.Bot(intents=intents)
+bot.start_time = time.time()
 
 
 @bot.event
