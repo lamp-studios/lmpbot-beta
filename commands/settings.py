@@ -14,7 +14,7 @@ def setup(bot: discord.Bot):
     )
     async def set_chatbot_channel(
         ctx: discord.ApplicationContext,
-        channel: discord.Option(
+        channel: discord.TextChannel = discord.Option(
             discord.TextChannel, "Channel to set as a chatbot channel.", required=False, default=None
         ),
     ):
@@ -34,7 +34,7 @@ def setup(bot: discord.Bot):
     )
     async def set_bot_channel(
         ctx: discord.ApplicationContext,
-        channel: discord.Option(
+        channel: discord.TextChannel = discord.Option(
             discord.TextChannel, "Channel to set as a dont talk channel.", required=False, default=None
         ),
     ):
@@ -54,10 +54,10 @@ def setup(bot: discord.Bot):
     )
     async def set_forum_channel(
         ctx: discord.ApplicationContext,
-        channel: discord.Option(
+        channel: discord.ForumChannel = discord.Option(
             discord.ForumChannel, "Channel to set as a forum channel.", required=False, default=None
         ),
-        role: discord.Option(discord.Role, "Role to set (optional).", required=False, default=None),
+        role: discord.Role = discord.Option(discord.Role, "Role to set (optional).", required=False, default=None),
     ):
         parts = []
 
@@ -81,7 +81,7 @@ def setup(bot: discord.Bot):
     )
     async def set_news_channel(
         ctx: discord.ApplicationContext,
-        channel: discord.Option(
+        channel: discord.TextChannel = discord.Option(
             discord.TextChannel, "Channel to set as a bot news channel.", required=False, default=None
         ),
     ):
@@ -103,7 +103,7 @@ def setup(bot: discord.Bot):
     )
     async def set_verification_role(
         ctx: discord.ApplicationContext,
-        role: discord.Option(
+        role: discord.Role = discord.Option(
             discord.Role, "Role to set as verification role.", required=False, default=None
         ),
     ):
