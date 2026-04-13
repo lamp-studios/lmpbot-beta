@@ -2,8 +2,8 @@ import discord
 from utils import db
 
 
-def setup(client: discord.Client):
-    @client.event
+def setup(bot: discord.Bot):
+    @bot.event
     async def on_thread_create(thread: discord.Thread):
         if thread.guild is None or thread.parent is None:
             return

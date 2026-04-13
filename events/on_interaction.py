@@ -1,10 +1,10 @@
 import discord
 
 
-def setup(client: discord.Client):
-    @client.event
+def setup(bot: discord.Bot):
+    @bot.event
     async def on_interaction(interaction: discord.Interaction):
-        # handle button interactions not covered by the command tree
+        # handle button interactions not covered by application commands
         if interaction.type != discord.InteractionType.component:
             return
 

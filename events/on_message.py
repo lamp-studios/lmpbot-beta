@@ -1,4 +1,3 @@
-import io
 import platform
 import textwrap
 import traceback
@@ -10,8 +9,8 @@ from utils import gemini
 config = Config()
 
 
-def setup(client: discord.Client):
-    @client.event
+def setup(bot: discord.Bot):
+    @bot.event
     async def on_message(message: discord.Message):
         if message.author.bot or message.guild is None:
             return
@@ -38,7 +37,6 @@ def setup(client: discord.Client):
             if reply is None:
                 await loading.edit(content="Gemini API key not configured or request failed.")
                 return
-            # split long responses into 2000-char chunks
             chunks = textwrap.wrap(reply, 2000, break_long_words=False, break_on_hyphens=False)
             if chunks:
                 await loading.edit(content=chunks[0])
@@ -55,11 +53,11 @@ def setup(client: discord.Client):
         args = parts[1] if len(parts) > 1 else ""
 
         if cmd == "ping":
-            await message.channel.send(f"Pong! {round(client.latency * 1000)}ms")
+            await message.channel.send(f"Pong! {round(bot.latency * 1000)}ms")
 
         elif cmd == "info":
             embed = discord.Embed(title="Bot Information", color=discord.Color.random())
-            embed.add_field(name="Ping", value=f"{round(client.latency * 1000)}ms")
+            embed.add_field(name="Ping", value=f"{round(bot.latency * 1000)}ms")
             embed.add_field(name="Uptime", value="use /help for more")
             embed.add_field(name="OS", value=platform.system())
             await message.channel.send(embed=embed)
@@ -80,18 +78,18 @@ def setup(client: discord.Client):
             await message.channel.send("Verified successfully!")
 
         elif cmd == "up":
-            if message.author.id not in client.owner_ids:
+            if not await bot.is_owner(message.author):
                 return
-            await client.tree.sync()
+            await bot.sync_commands()
             await message.add_reaction("\U0001f44d\U0001f3fb")
 
         elif cmd == "exe":
-            if message.author.id not in client.owner_ids:
+            if not await bot.is_owner(message.author):
                 return
             if not args:
                 return
             try:
-                exec_globals = {"client": client, "message": message, "discord": discord}
+                exec_globals = {"bot": bot, "client": bot, "message": message, "discord": discord}
                 exec(f"import asyncio\nasync def _ex():\n{textwrap.indent(args, '    ')}", exec_globals)
                 result = await exec_globals["_ex"]()
                 if result is not None:
@@ -100,10 +98,10 @@ def setup(client: discord.Client):
                 await message.channel.send(f"```\n{traceback.format_exc()[:1900]}\n```")
 
         elif cmd == "send_new":
-            if message.author.id not in client.owner_ids:
+            if not await bot.is_owner(message.author):
                 return
             rows = await db.search_guild_var("news_channel")
             for _, channel_id in rows:
-                ch = client.get_channel(int(channel_id))
+                ch = bot.get_channel(int(channel_id))
                 if ch:
                     await ch.send(args[:2000])
