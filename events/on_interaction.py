@@ -4,8 +4,9 @@ import discord
 def setup(bot: discord.Bot):
     @bot.event
     async def on_interaction(interaction: discord.Interaction):
-        # handle button interactions not covered by application commands
+        # let py-cord dispatch slash commands / other application commands
         if interaction.type != discord.InteractionType.component:
+            await bot.process_application_commands(interaction)
             return
 
         if interaction.data.get("custom_id") == "learnmore":
