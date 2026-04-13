@@ -3,7 +3,7 @@ from config import Config
 
 config = Config()
 
-_MODEL = "gemini-1.5-flash"
+_MODEL = "gemini-2.5-flash"
 _URL = f"https://generativelanguage.googleapis.com/v1beta/models/{_MODEL}:generateContent"
 
 _session: aiohttp.ClientSession | None = None
