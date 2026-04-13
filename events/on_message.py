@@ -15,7 +15,7 @@ def _format_uptime(seconds: float) -> str:
     weeks, seconds = divmod(seconds, 7 * 24 * 3600)
     days, seconds = divmod(seconds, 24 * 3600)
     hours, seconds = divmod(seconds, 3600)
-    minutes, _ = divmod(seconds, 60)
+    minutes, seconds = divmod(seconds, 60)
 
     parts = []
     if weeks:
@@ -26,7 +26,9 @@ def _format_uptime(seconds: float) -> str:
         parts.append(f"{hours}h")
     if minutes:
         parts.append(f"{minutes}m")
-    return " ".join(parts) or "0m"
+    if seconds or not parts:
+        parts.append(f"{seconds}s")
+    return " ".join(parts)
 
 
 def setup(bot: discord.Bot):
