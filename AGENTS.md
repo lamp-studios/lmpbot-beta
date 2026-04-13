@@ -2,150 +2,143 @@
 
 ## Project Overview
 
-This is **lmp-bot-beta**, a Discord bot built with ForgeScript (`@tryforge/forgescript` v2.6.0).
-The bot uses ForgeDB for persistence, ForgeCanvas for image generation, and supports both prefix commands (`.`) and slash commands.
+This is **lmp-bot-beta**, a Discord bot built with [discord.py](https://discordpy.readthedocs.io) (v2.4+).
+The bot uses `aiosqlite` for persistence, `aiohttp` for HTTP calls (including Gemini web scraping),
+and supports both prefix commands (`.`) and slash commands (`app_commands`).
 
 ## File Structure
 
 ```
 lmpbot-beta/
-├── index.js                    # Entry point — ForgeClient setup, intents, events, extensions
-├── package.json                # Dependencies and scripts
-├── forgeconfig.json            # ForgeLSP config
-├── .env                        # Bot token (DANGER_DONTSHARETOYKEN)
-├── server_scraper.js           # Standalone Discord server invite scraper (separate tool)
+├── main.py                     # Entry point — Client setup, intents, module loading
+├── config.py                   # Env/config loader (Config class)
+├── requirements.txt            # Python dependencies
+├── start.bat                   # Windows launcher (python main.py)
+├── setup-lmpbot.sh             # Raspberry Pi / Linux installer (systemd + auto-updater)
+├── .env                        # Bot token + Gemini key (DANGER_DONTSHARETOYKEN, GEMINI_API_KEY)
 │
-├── cmds/                       # Prefix commands (`.` prefix, messageCreate)
-│   ├── channel.js              # Anti-bot channel detection
-│   ├── exe.js                  # Owner-only eval command (.exe)
-│   ├── ping.js                 # Ping command
-│   ├── ready.js                # clientReady event (logs "Successfully loaded")
-│   ├── up.js                   # Owner-only slash command registration
-│   ├── verify.js               # User verification command
-│   ├── checkglobal.old         # Archived command
-│   └── list.old                # Archived command
+├── commands/                   # Slash commands (auto-loaded app_commands)
+│   ├── __init__.py
+│   ├── help.py                 # /help
+│   ├── members.py              # /members - show verified members
+│   ├── welcome.py              # /welcome - mass welcome sender
+│   └── settings.py             # /set_chatbot_channel, /set_bot_channel,
+│                               # /set_forum_channel, /set_news_channel,
+│                               # /set_verification_role
 │
-├── slash/                      # Slash commands (application commands)
-│   ├── welcome.js              # Mass welcome message sender
-│   ├── help.js                 # Help command (uses container/text display components)
-│   ├── members.js              # Show verified members list
-│   ├── createserver.js         # Create game server via API
-│   ├── set_verify_role.js      # Set verification role (owner only)
-│   ├── set_dont_talk_channel.js # Set anti-bot channel (owner only)
-│   ├── find_tags.old           # Archived command
-│   └── test.old                # Archived command
+├── events/                     # discord.py event handlers (auto-loaded)
+│   ├── __init__.py
+│   ├── on_ready.py             # on_ready - startup log
+│   ├── on_message.py           # prefix commands, dont_talk auto-ban, chatbot replies
+│   ├── on_interaction.py       # interaction logging / routing
+│   ├── on_guild_join.py        # on_guild_join handler
+│   └── on_thread_create.py     # Forum channel: auto-add staff to new threads
 │
-├── routes/                     # API route handlers (currently unused, Quoriel API commented out)
-│   ├── createserver.js
-│   └── createuser.js
+├── utils/
+│   ├── __init__.py
+│   ├── db.py                   # aiosqlite helpers: guild/member var get/set/delete/search
+│   └── gemini.py               # Gemini web-scraping chat helper
 │
 ├── database/
-│   └── forge.db                # SQLite database (ForgeDB)
+│   └── forge.db                # SQLite database (created by utils/db.init_db)
 │
-├── discord_token.txt           # Legacy token file
-├── discord_token.txt.example   # Token file template
-├── proxies.txt.example         # Proxy list template (for scraper)
-├── tags.txt                    # Tags data file
-├── invites.json                # Scraped invite data
-├── invites.csv                 # Scraped invite data (CSV)
-├── invites_detailed.json       # Detailed invite data
+├── invites.json                # Scraped invite data (legacy)
+├── invites.csv                 # Scraped invite data (legacy CSV)
+├── invites_detailed.json       # Detailed invite data (legacy)
 └── lmpbot-beta.zip             # Project archive
 ```
 
 ## Build/Run Commands
 
 ```bash
-npm start       # Start the bot (node index.js)
-npm run scrape  # Run the server scraper (node server_scraper.js)
+python main.py       # Start the bot
+start.bat            # Windows convenience launcher
 ```
 
 No linting, testing, or build step configured. Manual testing via Discord.
 
-## Bot Configuration (index.js)
+## Bot Configuration (main.py)
 
 **Intents:**
-Guilds, GuildMembers, GuildModeration, GuildInvites, GuildMessages, GuildMessageReactions,
-DirectMessages, DirectMessageReactions, DirectMessageTyping, AutoModerationConfiguration,
-AutoModerationExecution, GuildMessagePolls, DirectMessagePolls, MessageContent
+Defaults + `message_content` + `members`.
 
-**Extensions:**
-- ForgeDB (SQLite-backed persistence)
-- ForgeCanvas (image generation)
-- Quoriel API (commented out — game server panel integration)
+**Prefix:** `.` (defined in `config.py`)
 
-**Prefix:** `.`
-
-**Events:** autoMod, channel, emoji, guild, interaction, invite, message, role events
+**Module loading:**
+`main.py` walks `commands/` and `events/` packages and calls each module's `setup(target)`:
+- `commands/` modules receive the `CommandTree`
+- `events/` modules receive the `Client`
 
 ## Dependencies
 
 | Package | Purpose |
 |---------|---------|
-| `@tryforge/forgescript` ^2.6.0 | Core bot framework (ForgeScript DSL) |
-| `@tryforge/forge.db` ^2.1.0 | Database extension (SQLite) |
-| `@tryforge/forge.canvas` ^1.2.2 | Canvas/image extension |
-| `sqlite3` ^5.1.7 | SQLite driver |
-| `@dotenvx/dotenvx` ^1.51.1 | Environment variable loading |
-| `@quoriel/api` ^1.5.2 | Game panel API (currently unused) |
-| `@quoriel/pterodactyl` | Pterodactyl panel client (currently unused) |
-| `uWebSockets.js` v20.55.0 | WebSocket server (currently unused) |
-| `https-proxy-agent` ^7.0.2 | Optional proxy support for scraper |
+| `discord.py` >=2.4,<3 | Core bot framework |
+| `aiosqlite` >=0.20 | Async SQLite driver for guild/member state |
+| `aiohttp` >=3.9 | HTTP client (Gemini scraping, generic requests) |
+| `python-dotenv` >=1.0 | Load `.env` into environment |
 
 ## Code Style
 
-- **Module system:** CommonJS (`require`/`module.exports`)
-- **Indentation:** 4 spaces preferred
+- **Language:** Python 3.10+ (uses `X | None` union syntax)
+- **Indentation:** 4 spaces
 - **Quotes:** Double quotes
-- **Semicolons:** Always
-- **File naming:** `snake_case.js`
-- **Variables:** `camelCase`
+- **File naming:** `snake_case.py`
+- **Variables / functions:** `snake_case`
 - **Constants:** `UPPER_SNAKE_CASE`
 - **Classes:** `PascalCase`
-- **ForgeScript code:** Template literals in `code` property
 
 ## Command Structures
 
-### Prefix Command (`cmds/`)
-```javascript
-module.exports = {
-    type: "messageCreate",  // or "clientReady" for events
-    name: "commandname",
-    code: `ForgeScript code here`
-};
+### Slash Command (`commands/`)
+```python
+import discord
+from discord import app_commands
+
+
+@app_commands.command(name="example", description="What it does.")
+@app_commands.default_permissions(administrator=True)   # optional
+@app_commands.describe(option="Option description.")
+async def example_cmd(interaction: discord.Interaction, option: str):
+    await interaction.response.send_message(f"got: {option}", ephemeral=True)
+
+
+def setup(tree: app_commands.CommandTree):
+    tree.add_command(example_cmd)
 ```
 
-### Slash Command (`slash/`)
-```javascript
-module.exports = {
-    code: `ForgeScript code here`,
-    data: {
-        name: "command_name",
-        description: "What the command does",
-        default_member_permissions: 8, // Optional: Admin only
-        options: [
-            {
-                name: "option_name",
-                description: "Option description",
-                type: 3, // STRING=3, INTEGER=4, BOOLEAN=5, USER=6, CHANNEL=7, ROLE=8
-                required: true
-            }
-        ]
-    }
-};
+### Event handler (`events/`)
+```python
+import discord
+
+
+def setup(client: discord.Client):
+    @client.event
+    async def on_something(...):
+        ...
 ```
+
+### Prefix command
+Prefix commands live inside `events/on_message.py` as `elif cmd == "...":` branches
+dispatched off the configured prefix. Owner-only commands gate on
+`message.author.id in client.owner_ids`.
 
 ## Adding New Commands
 
-1. **Prefix command:** Create `cmds/yourcommand.js`
-2. **Slash command:** Create `slash/your_command.js`
-3. Commands auto-load on bot startup
-4. After adding slash commands, run `.up` in Discord (owner only) to register them
+1. **Slash command:** Create `commands/your_command.py` exposing a `setup(tree)` function.
+2. **Event handler:** Create `events/on_your_event.py` exposing a `setup(client)` function.
+3. **Prefix command:** Add an `elif cmd == "yourcmd":` branch inside `events/on_message.py`.
+4. Modules auto-load on bot startup via `Client.load_modules` in `main.py`.
+5. After adding/changing slash commands, run `.up` in Discord (owner only) to sync the tree.
 
 ## Important Notes
 
-1. **No build step** — JavaScript runs directly with Node.js
-2. **ForgeScript DSL** — Commands use ForgeScript, not raw discord.js
-3. **Never commit** `.env` or `discord_token.txt`
-4. **GuildMembers intent** — Required for `$fetchMembers`/`$guildMemberIDs`; must be enabled in BOTH code AND Discord Developer Portal
-5. **Slash command registration** — Use `.up` command to update Discord's command registry
-6. **Owner ID:** `1056952213056004118`
+1. **No build step** — Python runs directly (`python main.py`).
+2. **Pure discord.py** — No ForgeScript, no Node.js. All logic is Python.
+3. **Never commit** `.env` or token files.
+4. **Members intent** — Required for member iteration / role lookups; must be enabled in
+   BOTH code AND the Discord Developer Portal.
+5. **Slash command registration** — `.up` calls `client.tree.sync()`.
+6. **Owner IDs** — Resolved at startup from `application_info()` (team members or single owner).
+7. **Database** — `utils/db.init_db()` runs in `setup_hook`; tables are created on first boot
+   at `database/forge.db`.
