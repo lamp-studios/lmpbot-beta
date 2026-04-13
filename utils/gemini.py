@@ -18,7 +18,7 @@ async def _get_session() -> aiohttp.ClientSession:
 
 async def chat(prompt: str) -> str | None:
     if not config.gemini_api_key:
-        print("[gemini] GEMINI_API_KEY not set in .env")
+        print("[gemini] GEMINI_API_KEY not set in .env", flush=True)
         return None
 
     session = await _get_session()
@@ -32,15 +32,15 @@ async def chat(prompt: str) -> str | None:
         ) as resp:
             text = await resp.text()
             if resp.status != 200:
-                print(f"[gemini] HTTP {resp.status}: {text[:500]}")
+                print(f"[gemini] HTTP {resp.status}: {text[:500]}", flush=True)
                 return None
             data = await resp.json(content_type=None)
     except Exception as e:
-        print(f"[gemini] request exception: {e!r}")
+        print(f"[gemini] request exception: {e!r}", flush=True)
         return None
 
     try:
         return data["candidates"][0]["content"]["parts"][0]["text"]
     except (KeyError, IndexError, TypeError):
-        print(f"[gemini] unexpected response shape: {str(data)[:500]}")
+        print(f"[gemini] unexpected response shape: {str(data)[:500]}", flush=True)
         return None
