@@ -35,3 +35,6 @@ invites_detailed.json
 
 # Archived/Removed
 *.old
+
+# pyenv
+.python-version

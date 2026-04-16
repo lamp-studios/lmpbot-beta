@@ -1,4 +1,4 @@
-py-cord>=2.6,<3
+py-cord>=2.7.2,<3
 python-dotenv>=1.0
 aiosqlite>=0.20
 aiohttp>=3.9
