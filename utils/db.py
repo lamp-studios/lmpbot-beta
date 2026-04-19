@@ -8,6 +8,16 @@ async def init_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     async with aiosqlite.connect(DB_PATH) as conn:
         await conn.execute("""
+            CREATE TABLE IF NOT EXISTS user_facts (
+                guild_id INTEGER,
+                user_id INTEGER,
+                key TEXT,
+                value TEXT,
+                PRIMARY KEY (guild_id, user_id, key)
+            )
+            """)
+        
+        await conn.execute("""
             CREATE TABLE IF NOT EXISTS guild_vars (
                 guild_id INTEGER NOT NULL,
                 key TEXT NOT NULL,
@@ -15,6 +25,7 @@ async def init_db():
                 PRIMARY KEY (guild_id, key)
             )
         """)
+
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS member_vars (
                 guild_id INTEGER NOT NULL,
@@ -24,8 +35,24 @@ async def init_db():
                 PRIMARY KEY (guild_id, member_id, key)
             )
         """)
+
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS chat_memory (
+                guild_id INTEGER,
+                channel_id INTEGER,
+                user_id INTEGER,
+                role TEXT,
+                content TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
         await conn.commit()
 
+
+# -------------------------
+# GUILD VARS
+# -------------------------
 
 async def get_guild_var(guild_id: int, key: str, default=None) -> str | None:
     async with aiosqlite.connect(DB_PATH) as conn:
@@ -55,6 +82,18 @@ async def delete_guild_var(guild_id: int, key: str):
         await conn.commit()
 
 
+async def search_guild_var(key: str) -> list[tuple[int, str]]:
+    async with aiosqlite.connect(DB_PATH) as conn:
+        cursor = await conn.execute(
+            "SELECT guild_id, value FROM guild_vars WHERE key = ?", (key,)
+        )
+        return await cursor.fetchall()
+
+
+# -------------------------
+# MEMBER VARS
+# -------------------------
+
 async def get_member_var(guild_id: int, member_id: int, key: str, default=None) -> str | None:
     async with aiosqlite.connect(DB_PATH) as conn:
         cursor = await conn.execute(
@@ -72,12 +111,21 @@ async def set_member_var(guild_id: int, member_id: int, key: str, value: str):
             (guild_id, member_id, key, str(value)),
         )
         await conn.commit()
+        
+async def set_user_fact(guild_id: int, user_id: int, key: str, value: str):
+    async with aiosqlite.connect(DB_PATH) as conn:
+        await conn.execute(
+            "INSERT OR REPLACE INTO user_facts (guild_id, user_id, key, value) VALUES (?, ?, ?, ?)",
+            (guild_id, user_id, key, value)
+        )
+        await conn.commit()
 
 
-async def search_guild_var(key: str) -> list[tuple[int, str]]:
-    """Returns all (guild_id, value) pairs for a given key."""
+async def get_user_facts(guild_id: int, user_id: int) -> dict:
     async with aiosqlite.connect(DB_PATH) as conn:
         cursor = await conn.execute(
-            "SELECT guild_id, value FROM guild_vars WHERE key = ?", (key,)
+            "SELECT key, value FROM user_facts WHERE guild_id = ? AND user_id = ?",
+            (guild_id, user_id)
         )
-        return await cursor.fetchall()
+        rows = await cursor.fetchall()
+        return {k: v for k, v in rows}
