@@ -1,4 +1,5 @@
 import platform
+import re
 import textwrap
 import time
 import traceback
@@ -11,24 +12,39 @@ from utils.db import DB_PATH
 
 config = Config()
 
+_IDENTITY_SKIP = {
+    "going", "doing", "trying", "eating", "drinking", "playing",
+    "watching", "listening", "reading", "writing", "working",
+    "learning", "studying", "feeling", "getting", "making",
+    "looking", "thinking", "waiting", "coming", "leaving",
+    "building",
+}
+
 def extract_facts(content: str):
-    content = content.lower()
     facts = {}
 
-    if "my name is " in content:
-        facts["name"] = content.split("my name is ")[1].split()[0]
+    m = re.search(r"\bmy name is ([A-Za-z][A-Za-z'-]{1,30})", content, re.IGNORECASE)
+    if m:
+        facts["name"] = m.group(1)
 
-    if "i am " in content:
-        facts["identity"] = content.split("i am ")[1][:50]
+    m = re.search(r"\bi am building\s+([^.!?,\n]{3,80})", content, re.IGNORECASE)
+    if m:
+        facts["project"] = m.group(1).strip()
 
-    if "i like " in content:
-        facts["likes"] = content.split("i like ")[1][:50]
+    m = re.search(r"\bi am (?:a |an |the )?(\S[^.!?,\n]{2,49})", content, re.IGNORECASE)
+    if m:
+        val = m.group(1).strip()
+        first = val.split()[0].lower() if val else ""
+        if first not in _IDENTITY_SKIP and not first.endswith("ing"):
+            facts["identity"] = val
 
-    if "i hate " in content:
-        facts["hates"] = content.split("i hate ")[1][:50]
+    m = re.search(r"\bi like\s+([^.!?,\n]{3,50})", content, re.IGNORECASE)
+    if m:
+        facts["likes"] = m.group(1).strip()
 
-    if "i am building " in content:
-        facts["project"] = content.split("i am building ")[1][:80]
+    m = re.search(r"\bi hate\s+([^.!?,\n]{3,50})", content, re.IGNORECASE)
+    if m:
+        facts["hates"] = m.group(1).strip()
 
     return facts
 
@@ -90,7 +106,7 @@ def build_smart_memory(rows):
     selected = []
     total_chars = 0
 
-    for idx, (role, content, score) in [x[1] for x in scored_sorted]:
+    for idx, (role, content, score) in scored_sorted:
         # compression strength based on score
         if score >= 10:
             limit = 1200
@@ -156,68 +172,66 @@ def setup(bot: discord.Bot):
                 pass
             return
 
-	# chatbot channel
-	chatbot_ch = await db.get_guild_var(guild_id, "chatbot_channel")
-	if chatbot_ch and str(message.channel.id) == chatbot_ch:
-	    loading = await message.channel.send("Loading... <a:CircleLoader:1492857500637335685>")
-	
-	    # SAVE USER MESSAGE + FETCH HISTORY
-	    async with aiosqlite.connect(DB_PATH) as conn:
-	        await conn.execute(
-	            "INSERT INTO chat_memory (guild_id, channel_id, user_id, role, content) VALUES (?, ?, ?, ?, ?)",
-	            (guild_id, message.channel.id, message.author.id, "user", message.content)
-	        )
-    
-			cursor = await conn.execute("""
-				    SELECT role, content FROM chat_memory
-				    WHERE guild_id = ? AND channel_id = ? AND user_id = ?
-				    AND (user_id = ? OR user_id = 0)
-				    ORDER BY timestamp DESC
-				    LIMIT 10
-				""", (guild_id, message.channel.id, message.author.id))	
-	        rows = await cursor.fetchall()
-	        await conn.commit()
-        max_chars = 6000 - len(message.content)
-	    history = build_smart_memory(rows)
-        facts = extract_facts(message.content)
+        # chatbot channel
+        chatbot_ch = await db.get_guild_var(guild_id, "chatbot_channel")
+        if chatbot_ch and str(message.channel.id) == chatbot_ch:
+            loading = await message.channel.send("Loading... <a:CircleLoader:1492857500637335685>")
 
-        for k, v in facts.items():
-            if len(v) > 2:
-                await db.set_user_fact(guild_id, message.author.id, k, v)
-        
-        user_facts = await db.get_user_facts(guild_id, message.author.id)
+            # SAVE USER MESSAGE + FETCH HISTORY
+            async with aiosqlite.connect(DB_PATH) as conn:
+                await conn.execute(
+                    "INSERT INTO chat_memory (guild_id, channel_id, user_id, role, content) VALUES (?, ?, ?, ?, ?)",
+                    (guild_id, message.channel.id, message.author.id, "user", message.content)
+                )
+                await conn.commit()
 
-        if user_facts:
-            fact_text = "\n".join([f"{k}: {v}" for k, v in user_facts.items()])
+                cursor = await conn.execute("""
+                    SELECT role, content FROM chat_memory
+                    WHERE guild_id = ? AND channel_id = ? AND user_id = ?
+                    ORDER BY timestamp DESC
+                    LIMIT 10
+                """, (guild_id, message.channel.id, message.author.id))
+                rows = await cursor.fetchall()
 
-            history.insert(0, {
-                "role": "user",
-                "parts": [{"text": f"User facts:\n{fact_text}"}]
-            })
-        
-	    # CALL GEMINI
-	    reply = await gemini.chat(message.content, history)
-	
-	    if reply is None:
-	        await loading.edit(content="Gemini failed.")
-	        return
-	
-	    # SAVE BOT RESPONSE
-	    async with aiosqlite.connect(DB_PATH) as conn:
-	        await conn.execute(
-	            "INSERT INTO chat_memory (guild_id, channel_id, user_id, role, content) VALUES (?, ?, ?, ?, ?)",
-	            (guild_id, message.channel.id, message.author.id, "model", reply)
-	        )
-	        await conn.commit()
-	
-	    # SEND RESPONSE
-	    chunks = textwrap.wrap(reply, 2000, break_long_words=False, break_on_hyphens=False)
-	
-	    await loading.edit(content=chunks[0])
-	    for chunk in chunks[1:]:
-	        await message.channel.send(chunk)
-	
-	    return
+            rows = list(reversed(rows))  # newest last for build_smart_memory
+            history = build_smart_memory(rows)
+
+            facts = extract_facts(message.content)
+            for k, v in facts.items():
+                if len(v) > 2:
+                    await db.set_user_fact(guild_id, message.author.id, k, v)
+
+            user_facts = await db.get_user_facts(guild_id, message.author.id)
+            if user_facts:
+                fact_text = "\n".join([f"{k}: {v}" for k, v in user_facts.items()])
+                history.insert(0, {
+                    "role": "user",
+                    "parts": [{"text": f"User facts:\n{fact_text}"}]
+                })
+
+            # CALL GEMINI
+            reply = await gemini.chat(message.content, history)
+
+            if reply is None:
+                await loading.edit(content="Gemini failed.")
+                return
+
+            # SAVE BOT RESPONSE
+            async with aiosqlite.connect(DB_PATH) as conn:
+                await conn.execute(
+                    "INSERT INTO chat_memory (guild_id, channel_id, user_id, role, content) VALUES (?, ?, ?, ?, ?)",
+                    (guild_id, message.channel.id, message.author.id, "model", reply)
+                )
+                await conn.commit()
+
+            # SEND RESPONSE
+            chunks = textwrap.wrap(reply, 2000, break_long_words=False, break_on_hyphens=False) or [reply[:2000] or "(empty)"]
+            await loading.edit(content=chunks[0])
+            for chunk in chunks[1:]:
+                await message.channel.send(chunk)
+
+            return
+
         # prefix commands
         if not message.content.startswith(config.prefix):
             return
