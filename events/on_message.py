@@ -68,7 +68,7 @@ def score_message(content: str) -> int:
             score += 5
 
     # penalize garbage
-    spammy = ["lol", "lmao", "ok", "k", "hi", "hello", "😂", "💀"]
+    spammy = ["lmaoooo"]
     if content_lower.strip() in spammy:
         score -= 5
 
@@ -87,6 +87,8 @@ def compress_text(text: str, max_len: int) -> str:
 def build_smart_memory(rows):
     """
     rows = [(role, content), ...] newest last
+    Returns a formatted transcript string, oldest to newest, with a blank
+    line between each message so the model can tell them apart.
     """
 
     scored = []
@@ -107,19 +109,19 @@ def build_smart_memory(rows):
     total_chars = 0
 
     for idx, (role, content, score) in scored_sorted:
-        # compression strength based on score
+        # gentle compression - keep most messages mostly intact
         if score >= 10:
-            limit = 1200
+            limit = 2000
         elif score >= 5:
-            limit = 500
+            limit = 1400
         elif score >= 0:
-            limit = 200
+            limit = 800
         else:
-            limit = 80  # trash gets nuked
+            limit = 400
 
         compressed = compress_text(content, limit)
 
-        if total_chars + len(compressed) > 7000:
+        if total_chars + len(compressed) > 20000:
             continue
 
         selected.append((idx, role, compressed))
@@ -128,7 +130,13 @@ def build_smart_memory(rows):
     # restore chronological order
     selected.sort(key=lambda x: x[0])
 
-    return [{"role": r, "parts": [{"text": c}]} for _, r, c in selected]
+    # one message per block, blank line between each, labelled by speaker
+    lines = []
+    for _, role, content in selected:
+        speaker = "User" if role == "user" else "Bot"
+        lines.append(f"{speaker}: {content}")
+
+    return "\n\n".join(lines)
 
 
 def _format_uptime(seconds: float) -> str:
@@ -189,12 +197,22 @@ def setup(bot: discord.Bot):
                     SELECT role, content FROM chat_memory
                     WHERE guild_id = ? AND channel_id = ? AND user_id = ?
                     ORDER BY timestamp DESC
-                    LIMIT 10
+                    LIMIT 50
                 """, (guild_id, message.channel.id, message.author.id))
                 rows = await cursor.fetchall()
 
             rows = list(reversed(rows))  # newest last for build_smart_memory
-            history = build_smart_memory(rows)
+            transcript = build_smart_memory(rows)
+
+            history = []
+            if transcript:
+                history.append({
+                    "role": "user",
+                    "parts": [{"text":
+                        "The following is our chat history so far "
+                        "(oldest to newest), for context:\n\n" + transcript
+                    }]
+                })
 
             facts = extract_facts(message.content)
             for k, v in facts.items():

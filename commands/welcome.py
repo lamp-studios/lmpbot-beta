@@ -1,6 +1,6 @@
 import discord
 import requests
-from discord import app_commands
+from discord.ext import commands
 
 
 def setup(bot: discord.Bot):
@@ -10,7 +10,7 @@ def setup(bot: discord.Bot):
         description="Command is disabled.",
         default_member_permissions=discord.Permissions(administrator=True),
     )
-    @app_commands.checks.is_owner()
+    @commands.is_owner()
     async def welcome_cmd(
         ctx: discord.ApplicationContext,
         channel: discord.TextChannel = discord.Option(
