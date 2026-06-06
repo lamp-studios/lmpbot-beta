@@ -38,3 +38,4 @@ invites_detailed.json
 
 # pyenv
 .python-version
+uv.lock

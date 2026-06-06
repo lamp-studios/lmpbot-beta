@@ -210,10 +210,10 @@ def setup(bot: discord.Bot):
                 })
 
             # CALL GEMINI
-            reply = await gemini.chat(message.content, history)
-
-            if reply is None:
-                await loading.edit(content="Gemini failed.")
+            try:
+                reply = await gemini.chat(message.content, history)
+            except Exception as e:
+                await loading.edit(content=f"Gemini failed. {e}")
                 return
 
             # SAVE BOT RESPONSE
@@ -253,6 +253,12 @@ def setup(bot: discord.Bot):
 
         elif cmd == "verify":
             verified = await db.get_member_var(guild_id, message.author.id, "is_verified")
+            enabled = await db.get_guild_var(guild_id, "verification_enabled")
+            if not enabled:
+                msg = await message.channel.send("Verification is not enabled on this server.")
+                time.sleep(2)
+                await msg.delete()
+                return
             if verified == "true":
                 await message.channel.send("You are already verified!")
                 return

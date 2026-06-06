@@ -109,9 +109,11 @@ def setup(bot: discord.Bot):
     ):
         if role is None:
             await db.delete_guild_var(ctx.guild.id, "verification_role")
+            await db.delete_guild_var(ctx.guild.id, "verification_enabled")
             await ctx.respond("Removed verification role!", ephemeral=True)
         else:
             await db.set_guild_var(ctx.guild.id, "verification_role", str(role.id))
+            await db.set_guild_var(ctx.guild.id, "verification_enabled", True)
             await ctx.respond(
                 f"Set {role.mention} as verified role successfully!", ephemeral=True
             )
