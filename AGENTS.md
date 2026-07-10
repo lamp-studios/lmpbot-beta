@@ -2,143 +2,147 @@
 
 ## Project Overview
 
-This is **lmp-bot-beta**, a Discord bot built with [discord.py](https://discordpy.readthedocs.io) (v2.4+).
-The bot uses `aiosqlite` for persistence, `aiohttp` for HTTP calls (including Gemini web scraping),
-and supports both prefix commands (`.`) and slash commands (`app_commands`).
+This is **lmpbot-beta**, a Discord bot built with [discord.js](https://discord.js.org) (v14+).
+The bot uses `mongoose` (MongoDB) for persistence, the `@google/generative-ai` SDK for the
+Gemini chatbot, and supports both prefix commands (`.`) and slash commands.
 
 ## File Structure
 
 ```
 lmpbot-beta/
-├── main.py                     # Entry point — Client setup, intents, module loading
-├── config.py                   # Env/config loader (Config class)
-├── requirements.txt            # Python dependencies
-├── start.bat                   # Windows launcher (python main.py)
+├── index.js                    # Entry point — Client setup, intents, command/event loaders, mongo connect
+├── config.js                   # Env/config loader (reads .env via dotenv)
+├── package.json                # Node dependencies + scripts
+├── start.bat                   # Windows launcher (pnpm install && pnpm start)
 ├── setup-lmpbot.sh             # Raspberry Pi / Linux installer (systemd + auto-updater)
-├── .env                        # Bot token + Gemini key (DANGER_DONTSHARETOYKEN, GEMINI_API_KEY)
+├── .env                        # Bot token, Gemini key, Mongo URI
+│                               # (DANGER_DONTSHARETOYKEN, GEMINI_API_KEY, MONGODB_URI)
 │
-├── commands/                   # Slash commands (auto-loaded app_commands)
-│   ├── __init__.py
-│   ├── help.py                 # /help
-│   ├── members.py              # /members - show verified members
-│   ├── welcome.py              # /welcome - mass welcome sender
-│   └── settings.py             # /set_chatbot_channel, /set_bot_channel,
-│                               # /set_forum_channel, /set_news_channel,
-│                               # /set_verification_role
+├── commands/                   # Slash commands (auto-loaded; one command per file)
+│   ├── help.js                 # /help
+│   ├── members.js              # /members - show verified members
+│   ├── welcome.js              # /welcome - mass welcome sender
+│   ├── set_chatbot_channel.js  # /set_chatbot_channel
+│   ├── set_bot_channel.js      # /set_bot_channel
+│   ├── set_forum_channel.js    # /set_forum_channel
+│   ├── set_news_channel.js     # /set_news_channel
+│   └── set_verification_role.js# /set_verification_role
 │
-├── events/                     # discord.py event handlers (auto-loaded)
-│   ├── __init__.py
-│   ├── on_ready.py             # on_ready - startup log
-│   ├── on_message.py           # prefix commands, dont_talk auto-ban, chatbot replies
-│   ├── on_interaction.py       # interaction logging / routing
-│   ├── on_guild_join.py        # on_guild_join handler
-│   └── on_thread_create.py     # Forum channel: auto-add staff to new threads
+├── events/                     # discord.js event handlers (auto-loaded)
+│   ├── ready.js                # ClientReady - startup log, owner resolution, status loop
+│   ├── messageCreate.js        # prefix commands, dont_talk auto-ban, chatbot replies
+│   ├── interactionCreate.js    # slash command routing + button handling
+│   ├── guildCreate.js          # guild join log
+│   └── threadCreate.js         # Forum channel: auto-add staff to new threads
 │
 ├── utils/
-│   ├── __init__.py
-│   ├── db.py                   # aiosqlite helpers: guild/member var get/set/delete/search
-│   └── gemini.py               # Gemini web-scraping chat helper
+│   ├── db.js                   # mongoose models + guild/member/fact/chat helpers
+│   ├── gemini.js               # Gemini chat helper (@google/generative-ai)
+│   ├── memory.js               # fact extraction, message scoring, history compression, uptime
+│   └── deploy.js               # registerCommands() — global slash command sync (.up)
 │
-├── database/
-│   └── forge.db                # SQLite database (created by utils/db.init_db)
-│
-├── invites.json                # Scraped invite data (legacy)
-├── invites.csv                 # Scraped invite data (legacy CSV)
-├── invites_detailed.json       # Detailed invite data (legacy)
-└── lmpbot-beta.zip             # Project archive
+└── python-code/                # Legacy py-cord implementation (gitignored, do not touch)
 ```
 
 ## Build/Run Commands
 
 ```bash
-python main.py       # Start the bot
+pnpm install         # Install dependencies
+pnpm start           # Start the bot (node index.js)
+pnpm dev             # Start with auto-reload (node --watch index.js)
 start.bat            # Windows convenience launcher
 ```
 
 No linting, testing, or build step configured. Manual testing via Discord.
 
-## Bot Configuration (main.py)
+## Bot Configuration (index.js)
 
 **Intents:**
-Defaults + `message_content` + `members`.
+`Guilds`, `GuildMessages`, `GuildMembers`, `MessageContent`.
 
-**Prefix:** `.` (defined in `config.py`)
+**Prefix:** `.` (defined in `config.js`)
 
 **Module loading:**
-`main.py` walks `commands/` and `events/` packages and calls each module's `setup(target)`:
-- `commands/` modules receive the `CommandTree`
-- `events/` modules receive the `Client`
+`index.js` reads every `.js` file in `commands/` and `events/`:
+- `commands/` modules must `export default { data, execute }` (a `SlashCommandBuilder` + handler)
+- `events/` modules must `export default { name, once?, execute }` (a discord.js event name + handler)
+- Event handlers receive the normal event args plus `client` as the final argument.
 
 ## Dependencies
 
 | Package | Purpose |
 |---------|---------|
-| `discord.py` >=2.4,<3 | Core bot framework |
-| `aiosqlite` >=0.20 | Async SQLite driver for guild/member state |
-| `aiohttp` >=3.9 | HTTP client (Gemini scraping, generic requests) |
-| `python-dotenv` >=1.0 | Load `.env` into environment |
+| `discord.js` >=14 | Core bot framework |
+| `mongoose` >=8 | MongoDB ODM for guild/member/fact/chat state |
+| `@google/generative-ai` | Gemini chatbot SDK |
+| `dotenv` | Load `.env` into `process.env` |
 
 ## Code Style
 
-- **Language:** Python 3.10+ (uses `X | None` union syntax)
-- **Indentation:** 4 spaces
+- **Language:** Modern JavaScript (ESM, `"type": "module"`)
+- **Indentation:** 2 spaces
 - **Quotes:** Double quotes
-- **File naming:** `snake_case.py`
-- **Variables / functions:** `snake_case`
+- **File naming:** `camelCase.js` for events, `snake_case.js` for slash command files (name matches the command)
+- **Variables / functions:** `camelCase`
 - **Constants:** `UPPER_SNAKE_CASE`
-- **Classes:** `PascalCase`
+- **Classes / models:** `PascalCase`
 
 ## Command Structures
 
 ### Slash Command (`commands/`)
-```python
-import discord
-from discord import app_commands
+```js
+import { SlashCommandBuilder, MessageFlags } from "discord.js";
 
+export default {
+  data: new SlashCommandBuilder()
+    .setName("example")
+    .setDescription("What it does.")
+    .addStringOption((o) => o.setName("option").setDescription("Option description.").setRequired(true)),
 
-@app_commands.command(name="example", description="What it does.")
-@app_commands.default_permissions(administrator=True)   # optional
-@app_commands.describe(option="Option description.")
-async def example_cmd(interaction: discord.Interaction, option: str):
-    await interaction.response.send_message(f"got: {option}", ephemeral=True)
-
-
-def setup(tree: app_commands.CommandTree):
-    tree.add_command(example_cmd)
+  async execute(interaction) {
+    const option = interaction.options.getString("option");
+    await interaction.reply({ content: `got: ${option}`, flags: MessageFlags.Ephemeral });
+  },
+};
 ```
 
 ### Event handler (`events/`)
-```python
-import discord
+```js
+import { Events } from "discord.js";
 
-
-def setup(client: discord.Client):
-    @client.event
-    async def on_something(...):
-        ...
+export default {
+  name: Events.SomeEvent,
+  // once: true,   // optional
+  async execute(/* ...args, client */) {
+    // ...
+  },
+};
 ```
 
 ### Prefix command
-Prefix commands live inside `events/on_message.py` as `elif cmd == "...":` branches
+Prefix commands live inside `events/messageCreate.js` as `else if (cmd === "...")` branches
 dispatched off the configured prefix. Owner-only commands gate on
-`message.author.id in client.owner_ids`.
+`message.client.ownerIds.has(message.author.id)`.
 
 ## Adding New Commands
 
-1. **Slash command:** Create `commands/your_command.py` exposing a `setup(tree)` function.
-2. **Event handler:** Create `events/on_your_event.py` exposing a `setup(client)` function.
-3. **Prefix command:** Add an `elif cmd == "yourcmd":` branch inside `events/on_message.py`.
-4. Modules auto-load on bot startup via `Client.load_modules` in `main.py`.
-5. After adding/changing slash commands, run `.up` in Discord (owner only) to sync the tree.
+1. **Slash command:** Create `commands/your_command.js` with a default `{ data, execute }` export.
+2. **Event handler:** Create `events/yourEvent.js` with a default `{ name, execute }` export.
+3. **Prefix command:** Add an `else if (cmd === "yourcmd")` branch inside `events/messageCreate.js`.
+4. Modules auto-load on bot startup via the loaders in `index.js`.
+5. After adding/changing slash commands, run `.up` in Discord (owner only) to sync them globally.
 
 ## Important Notes
 
-1. **No build step** — Python runs directly (`python main.py`).
-2. **Pure discord.py** — No ForgeScript, no Node.js. All logic is Python.
+1. **No build step** — Node runs the source directly (`node index.js`).
+2. **Pure discord.js** — No ForgeScript, no Python. All logic is JavaScript.
 3. **Never commit** `.env` or token files.
 4. **Members intent** — Required for member iteration / role lookups; must be enabled in
    BOTH code AND the Discord Developer Portal.
-5. **Slash command registration** — `.up` calls `client.tree.sync()`.
-6. **Owner IDs** — Resolved at startup from `application_info()` (team members or single owner).
-7. **Database** — `utils/db.init_db()` runs in `setup_hook`; tables are created on first boot
-   at `database/forge.db`.
+5. **Slash command registration** — `.up` calls `client.application.commands.set(...)` (see `utils/deploy.js`).
+6. **Owner IDs** — Resolved at startup in `events/ready.js` from `client.application` (team members or single owner).
+7. **Database** — MongoDB via `mongoose`; connection string comes from `MONGODB_URI`. Collections/indexes
+   are created lazily by the models in `utils/db.js`. Discord snowflakes are stored as strings.
+8. **Legacy code** — The original py-cord implementation is preserved under `python-code/` and is
+   gitignored. Do not modify it; the Node.js version at the repo root is the source of truth.
+```

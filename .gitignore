@@ -1,8 +1,15 @@
 # Dependencies
-__pycache__/
-*.pyc
-.venv/
-venv/
+node_modules/
+.pnp/
+.pnp.js
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
 # Environment & secrets
 .env
@@ -12,6 +19,10 @@ proxies.txt
 
 # Database
 database/
+
+# Build output
+dist/
+build/
 
 # IDE / editor
 .vscode/
@@ -36,5 +47,5 @@ invites_detailed.json
 # Archived/Removed
 *.old
 
-# pyenv
-.python-version
+# Legacy py-cord implementation (kept locally for reference)
+python-code/

@@ -1,6 +1,7 @@
 # lmpbot-beta
 
-A Discord bot built with [discord.py](https://discordpy.readthedocs.io) featuring moderation, verification, Gemini-powered chat, and server management tools.
+A Discord bot built with [Discord.JS](https://discord.js.org)
+featuring moderation, verification, Gemini-powered chat, and server management tools.
 
 ## Features
 
@@ -16,7 +17,7 @@ A Discord bot built with [discord.py](https://discordpy.readthedocs.io) featurin
 
 ### Prerequisites
 
-- [Python](https://www.python.org/) 3.10+
+- [NodeJS](https://nodejs.org) v24+
 - A [Discord bot application](https://discord.com/developers/applications) with the following privileged intents enabled:
   - Server Members Intent
   - Message Content Intent
@@ -26,12 +27,7 @@ A Discord bot built with [discord.py](https://discordpy.readthedocs.io) featurin
 ```bash
 git clone https://github.com/lamp-studios/lmpbot-beta.git
 cd lmpbot-beta
-python -m venv .venv
-# Windows:
-.venv\Scripts\activate
-# Linux/macOS:
-source .venv/bin/activate
-pip install -r requirements.txt
+pnpm install
 ```
 
 ### Configuration
@@ -41,12 +37,13 @@ Create a `.env` file in the project root:
 ```env
 DANGER_DONTSHARETOYKEN=your_discord_bot_token
 GEMINI_API_KEY=your_gemini_api_key
+MONGODB_URI=your_mongodb_connection_string
 ```
 
 ### Running
 
 ```bash
-python main.py
+node index.js
 ```
 
 On Windows you can also just double-click `start.bat`.
@@ -62,10 +59,9 @@ chmod +x setup-lmpbot.sh && sudo ./setup-lmpbot.sh
 ```
 
 This will:
-- Install Python 3 and build tools
-- Clone the repo and create a virtualenv
-- Install Python dependencies from `requirements.txt`
-- Prompt for your bot token and create `.env`
+- Install Node.js and enable pnpm (via corepack)
+- Clone the repo and install dependencies with `pnpm install`
+- Prompt for your bot token and create `.env` (bot token, Gemini key, Mongo URI)
 - Set up a systemd service (auto-start on boot)
 - Set up an auto-updater that checks for new commits every 5 minutes
 
@@ -89,7 +85,7 @@ This will:
 | Command | Permission | Description |
 |---------|-----------|-------------|
 | `.up` | Owner | Registers/updates slash commands |
-| `.exe` | Owner | Evaluates Python code |
+| `.exe` | Owner | Evaluates JavaScript code |
 | `.send_new` | Owner | Broadcasts a message to every guild's news channel |
 | `.ping` | Everyone | Ping the bot |
 | `.info` | Everyone | Show bot info (ping, OS, etc.) |
@@ -97,10 +93,10 @@ This will:
 
 ## Tech Stack
 
-- [discord.py](https://discordpy.readthedocs.io) - Discord bot framework
-- [aiosqlite](https://github.com/omnilib/aiosqlite) - Async SQLite for guild/member storage
-- [aiohttp](https://docs.aiohttp.org) - HTTP client (Gemini web scraping)
-- [python-dotenv](https://github.com/theskumar/python-dotenv) - Environment variable loading
+- [discord.js](https://discord.js.org) - Discord bot framework
+- [mongoose](https://mongoosejs.com) - MongoDB ODM for guild/member storage
+- [@google/generative-ai](https://www.npmjs.com/package/@google/generative-ai) - Gemini chatbot SDK
+- [dotenv](https://github.com/motdotla/dotenv) - Environment variable loading
 
 ## License
 

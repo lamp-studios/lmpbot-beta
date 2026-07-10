@@ -1,7 +1,7 @@
 #!/bin/bash
 # =============================================================================
 #  LMPBot Beta - Raspberry Pi Setup Script
-#  Auto-installs Python deps, configures systemd, sets up auto-updates
+#  Auto-installs Node.js deps, configures systemd, sets up auto-updates
 #
 #  Usage:  chmod +x setup-lmpbot.sh && sudo ./setup-lmpbot.sh
 # =============================================================================
@@ -25,6 +25,7 @@ BOT_USER="${SUDO_USER:-$USER}"
 INSTALL_DIR="/home/${BOT_USER}/lmpbot-beta"
 SERVICE_NAME="lmpbot"
 UPDATE_TIMER_INTERVAL="*:0/5"
+NODE_MAJOR="20"
 
 if [[ $EUID -ne 0 ]]; then
     err "Run this script with sudo."
@@ -41,8 +42,22 @@ info "Updating packages..."
 apt-get update -qq
 
 info "Installing prerequisites..."
-apt-get install -y -qq git curl python3 python3-pip python3-venv > /dev/null 2>&1
+apt-get install -y -qq git curl ca-certificates > /dev/null 2>&1
 log "System deps installed."
+
+# -- node.js + pnpm -----------------------------------------------------------
+
+if ! command -v node > /dev/null 2>&1 || [[ "$(node -v | cut -d. -f1 | tr -d 'v')" -lt "$NODE_MAJOR" ]]; then
+    info "Installing Node.js ${NODE_MAJOR}.x..."
+    curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR}.x" | bash - > /dev/null 2>&1
+    apt-get install -y -qq nodejs > /dev/null 2>&1
+fi
+log "Node.js $(node -v) ready."
+
+info "Enabling pnpm via corepack..."
+corepack enable > /dev/null 2>&1
+corepack prepare pnpm@latest --activate > /dev/null 2>&1
+log "pnpm $(pnpm -v) ready."
 
 # -- clone repo ---------------------------------------------------------------
 
@@ -55,16 +70,29 @@ else
 fi
 log "Repo ready at ${INSTALL_DIR}."
 
-# -- python venv + deps -------------------------------------------------------
+# -- purge old python install -------------------------------------------------
 
-info "Setting up Python venv..."
-sudo -u "$BOT_USER" python3 -m venv "$INSTALL_DIR/.venv"
-sudo -u "$BOT_USER" "$INSTALL_DIR/.venv/bin/pip" install -q -r "$INSTALL_DIR/requirements.txt"
-log "Python dependencies installed."
+if [[ -d "$INSTALL_DIR/.venv" ]] || [[ -f "$INSTALL_DIR/requirements.txt" ]] || \
+   compgen -G "$INSTALL_DIR/*.py" > /dev/null 2>&1; then
+    warn "Detected old Python install — cleaning up Python artifacts..."
+    # The new JS code arrives via git pull above; here we only strip Python
+    # leftovers git can't remove (untracked venv/caches) plus any stray .py files.
+    rm -rf "$INSTALL_DIR/.venv"
+    rm -f "$INSTALL_DIR/requirements.txt"
+    find "$INSTALL_DIR" -path "$INSTALL_DIR/node_modules" -prune -o \
+        -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+    find "$INSTALL_DIR" -path "$INSTALL_DIR/node_modules" -prune -o \
+        -type f -name "*.py" -delete 2>/dev/null || true
+    find "$INSTALL_DIR" -path "$INSTALL_DIR/node_modules" -prune -o \
+        -type f -name "*.pyc" -delete 2>/dev/null || true
+    log "Python artifacts removed."
+fi
 
-# -- database dir -------------------------------------------------------------
+# -- node deps ----------------------------------------------------------------
 
-sudo -u "$BOT_USER" mkdir -p "${INSTALL_DIR}/database"
+info "Installing Node.js dependencies..."
+sudo -u "$BOT_USER" sh -c "cd '$INSTALL_DIR' && pnpm install --prod --frozen-lockfile"
+log "Node.js dependencies installed."
 
 # -- .env setup ---------------------------------------------------------------
 
@@ -75,12 +103,17 @@ echo -e "${CYAN}--- Discord Bot Token Setup ---${NC}"
 
 if [[ -f "$ENV_FILE" ]]; then
     warn ".env already exists. Edit manually if needed: nano ${ENV_FILE}"
+    if ! grep -q '^MONGODB_URI=' "$ENV_FILE"; then
+        echo "MONGODB_URI=" >> "$ENV_FILE"
+        log "Added missing MONGODB_URI= line to .env."
+    fi
 else
     read -rp "  Paste your Discord bot token (or Enter to skip): " BOT_TOKEN
 
     cat > "$ENV_FILE" <<EOF
 DANGER_DONTSHARETOYKEN=${BOT_TOKEN:-PASTE_YOUR_TOKEN_HERE}
 GEMINI_API_KEY=
+MONGODB_URI=
 EOF
     chown "${BOT_USER}:${BOT_USER}" "$ENV_FILE"
     chmod 600 "$ENV_FILE"
@@ -107,7 +140,7 @@ Type=simple
 User=${BOT_USER}
 Group=${BOT_USER}
 WorkingDirectory=${INSTALL_DIR}
-ExecStart=${INSTALL_DIR}/.venv/bin/python main.py
+ExecStart=$(command -v node) ${INSTALL_DIR}/index.js
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal
@@ -147,8 +180,7 @@ REMOTE=$(git rev-parse "origin/${REPO_BRANCH}")
 
 logger -t lmpbot-updater "Updating ${LOCAL:0:7} -> ${REMOTE:0:7}"
 sudo -u "$BOT_USER" git pull --ff-only origin "$REPO_BRANCH" 2>/dev/null
-sudo -u "$BOT_USER" mkdir -p "${INSTALL_DIR}/database"
-sudo -u "$BOT_USER" "${INSTALL_DIR}/.venv/bin/pip" install -q -r "${INSTALL_DIR}/requirements.txt"
+sudo -u "$BOT_USER" sh -c "cd '$INSTALL_DIR' && pnpm install --prod --frozen-lockfile" 2>/dev/null
 systemctl restart "$SERVICE_NAME"
 UPDATER_EOF
 
