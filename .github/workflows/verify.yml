@@ -1,22 +1,18 @@
-name: Sync master → main
+name: Verify JS
 
 on:
   push:
     branches:
       - master
-
-permissions:
-  contents: write
+  pull_request:
 
 jobs:
-  sync:
+  verify:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -24,7 +20,9 @@ jobs:
           node-version: "22"
 
       - name: Validate JavaScript syntax
-        run: node --check main.js
-
-      - name: Push to main
-        run: git push origin master:main
+        run: |
+          set -e
+          for f in $(git ls-files '*.js'); do
+            echo "checking $f"
+            node --check "$f"
+          done
