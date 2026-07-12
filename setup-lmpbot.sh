@@ -20,7 +20,7 @@ err()   { echo -e "${RED}[x]${NC} $1"; }
 info()  { echo -e "${CYAN}[i]${NC} $1"; }
 
 REPO_URL="https://github.com/lamp-studios/lmpbot-beta.git"
-REPO_BRANCH="main"
+REPO_BRANCH="master"
 BOT_USER="${SUDO_USER:-$USER}"
 INSTALL_DIR="/home/${BOT_USER}/lmpbot-beta"
 SERVICE_NAME="lmpbot"
@@ -62,31 +62,20 @@ log "pnpm $(pnpm -v) ready."
 # -- clone repo ---------------------------------------------------------------
 
 if [[ -d "$INSTALL_DIR/.git" ]]; then
-    warn "Repo already exists. Pulling latest..."
-    sudo -u "$BOT_USER" git -C "$INSTALL_DIR" pull --ff-only origin "$REPO_BRANCH"
+    warn "Repo already exists. Forcing working tree to origin/${REPO_BRANCH}..."
+    sudo -u "$BOT_USER" git -C "$INSTALL_DIR" fetch origin "$REPO_BRANCH"
+    # Move onto the target branch and make the tree EXACTLY match the remote,
+    # discarding any local edits. This handles the old main -> master switch and
+    # deletes every tracked Python file (main.py, commands/*.py, ...) in one shot.
+    sudo -u "$BOT_USER" git -C "$INSTALL_DIR" checkout -f -B "$REPO_BRANCH" "origin/${REPO_BRANCH}"
+    # Remove untracked Python leftovers (.venv, __pycache__, stray *.py) while
+    # keeping gitignored runtime files like .env, database/, and node_modules/.
+    sudo -u "$BOT_USER" git -C "$INSTALL_DIR" clean -fd
 else
     info "Cloning repo..."
     sudo -u "$BOT_USER" git clone -b "$REPO_BRANCH" "$REPO_URL" "$INSTALL_DIR"
 fi
 log "Repo ready at ${INSTALL_DIR}."
-
-# -- purge old python install -------------------------------------------------
-
-if [[ -d "$INSTALL_DIR/.venv" ]] || [[ -f "$INSTALL_DIR/requirements.txt" ]] || \
-   compgen -G "$INSTALL_DIR/*.py" > /dev/null 2>&1; then
-    warn "Detected old Python install — cleaning up Python artifacts..."
-    # The new JS code arrives via git pull above; here we only strip Python
-    # leftovers git can't remove (untracked venv/caches) plus any stray .py files.
-    rm -rf "$INSTALL_DIR/.venv"
-    rm -f "$INSTALL_DIR/requirements.txt"
-    find "$INSTALL_DIR" -path "$INSTALL_DIR/node_modules" -prune -o \
-        -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-    find "$INSTALL_DIR" -path "$INSTALL_DIR/node_modules" -prune -o \
-        -type f -name "*.py" -delete 2>/dev/null || true
-    find "$INSTALL_DIR" -path "$INSTALL_DIR/node_modules" -prune -o \
-        -type f -name "*.pyc" -delete 2>/dev/null || true
-    log "Python artifacts removed."
-fi
 
 # -- node deps ----------------------------------------------------------------
 
