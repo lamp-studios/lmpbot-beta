@@ -14,9 +14,11 @@ export default {
     const role = interaction.options.getRole("role");
     if (!role) {
       await deleteGuildVar(interaction.guild.id, "verification_role");
+      await deleteGuildVar(interaction.guild.id, "verification_enabled");
       await interaction.reply({ content: "Removed verification role!", flags: MessageFlags.Ephemeral });
     } else {
       await setGuildVar(interaction.guild.id, "verification_role", role.id);
+      await setGuildVar(interaction.guild.id, "verification_enabled", "true");
       await interaction.reply({
         content: `Set ${role} as verified role successfully!`,
         flags: MessageFlags.Ephemeral,

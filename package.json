@@ -16,11 +16,12 @@
   "author": "",
   "license": "ISC",
   "engines": {
-    "node": ">=20"
+    "node": ">=22.5"
   },
   "packageManager": "pnpm@10.33.2",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@supabase/supabase-js": "^2.110.2",
     "discord.js": "^14.16.3",
     "dotenv": "^16.4.7",
     "mongoose": "^8.9.5"

@@ -53,7 +53,7 @@ export function scoreMessage(content) {
   }
 
   // penalize garbage
-  const spammy = ["lol", "lmao", "ok", "k", "hi", "hello", "😂", "💀"];
+  const spammy = ["lmaoooo"];
   if (spammy.includes(lower.trim())) score -= 5;
 
   return score;
@@ -69,9 +69,11 @@ export function compressText(text, maxLen) {
 }
 
 /**
- * Build compressed Gemini history from rows.
+ * Build a compressed transcript from rows.
+ * Returns a formatted transcript string, oldest to newest, with a blank
+ * line between each message so the model can tell them apart.
  * @param {Array<{role: string, content: string}>} rows newest last
- * @returns {Array<{role: string, parts: Array<{text: string}>}>}
+ * @returns {string}
  */
 export function buildSmartMemory(rows) {
   const scored = rows.map(({ role, content }) => ({
@@ -89,14 +91,15 @@ export function buildSmartMemory(rows) {
   let totalChars = 0;
 
   for (const { idx, role, content, score } of sorted) {
+    // gentle compression - keep most messages mostly intact
     let limit;
-    if (score >= 10) limit = 1200;
-    else if (score >= 5) limit = 500;
-    else if (score >= 0) limit = 200;
-    else limit = 80; // trash gets nuked
+    if (score >= 10) limit = 2000;
+    else if (score >= 5) limit = 1400;
+    else if (score >= 0) limit = 800;
+    else limit = 400;
 
     const compressed = compressText(content, limit);
-    if (totalChars + compressed.length > 7000) continue;
+    if (totalChars + compressed.length > 20000) continue;
 
     selected.push({ idx, role, content: compressed });
     totalChars += compressed.length;
@@ -105,10 +108,10 @@ export function buildSmartMemory(rows) {
   // restore chronological order
   selected.sort((a, b) => a.idx - b.idx);
 
-  return selected.map(({ role, content }) => ({
-    role,
-    parts: [{ text: content }],
-  }));
+  // one message per block, blank line between each, labelled by speaker
+  return selected
+    .map(({ role, content }) => `${role === "user" ? "User" : "Bot"}: ${content}`)
+    .join("\n\n");
 }
 
 export function formatUptime(seconds) {

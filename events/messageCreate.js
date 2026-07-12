@@ -74,9 +74,23 @@ export default {
         guildId,
         message.channel.id,
         message.author.id,
-        10
+        50
       );
-      const history = buildSmartMemory(rows);
+      const transcript = buildSmartMemory(rows);
+
+      const history = [];
+      if (transcript) {
+        history.push({
+          role: "user",
+          parts: [
+            {
+              text:
+                "The following is our chat history so far (oldest to newest), for context:\n\n" +
+                transcript,
+            },
+          ],
+        });
+      }
 
       const facts = extractFacts(message.content);
       for (const [k, v] of Object.entries(facts)) {
@@ -97,7 +111,13 @@ export default {
       }
 
       // CALL GEMINI
-      const reply = await gemini.chat(message.content, history);
+      let reply;
+      try {
+        reply = await gemini.chat(message.content, history);
+      } catch (err) {
+        await loading.edit(`Gemini failed. ${err}`);
+        return;
+      }
 
       if (reply === null) {
         await loading.edit("Gemini failed.");
@@ -144,6 +164,12 @@ export default {
         );
       await message.channel.send({ embeds: [embed] });
     } else if (cmd === "verify") {
+      const enabled = await getGuildVar(guildId, "verification_enabled");
+      if (!enabled) {
+        const msg = await message.channel.send("Verification is not enabled on this server.");
+        setTimeout(() => msg.delete().catch(() => {}), 2000);
+        return;
+      }
       const verified = await getMemberVar(guildId, message.author.id, "is_verified");
       if (verified === "true") {
         await message.channel.send("You are already verified!");

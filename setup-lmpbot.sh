@@ -25,7 +25,7 @@ BOT_USER="${SUDO_USER:-$USER}"
 INSTALL_DIR="/home/${BOT_USER}/lmpbot-beta"
 SERVICE_NAME="lmpbot"
 UPDATE_TIMER_INTERVAL="*:0/5"
-NODE_MAJOR="20"
+NODE_MAJOR="22"
 
 if [[ $EUID -ne 0 ]]; then
     err "Run this script with sudo."
@@ -102,11 +102,19 @@ echo ""
 echo -e "${CYAN}--- Discord Bot Token Setup ---${NC}"
 
 if [[ -f "$ENV_FILE" ]]; then
-    warn ".env already exists. Edit manually if needed: nano ${ENV_FILE}"
-    if ! grep -q '^MONGODB_URI=' "$ENV_FILE"; then
-        echo "MONGODB_URI=" >> "$ENV_FILE"
-        log "Added missing MONGODB_URI= line to .env."
-    fi
+    warn ".env already exists. Filling in any missing keys: nano ${ENV_FILE}"
+    # add any expected keys that aren't already present, leaving existing values
+    # untouched (blank storage keys just disable that tier)
+    for KEY in DANGER_DONTSHARETOYKEN GEMINI_API_KEY MONGODB_URI SUPABASE_URL SUPABASE_KEY; do
+        if ! grep -q "^${KEY}=" "$ENV_FILE"; then
+            if [[ "$KEY" == "DANGER_DONTSHARETOYKEN" ]]; then
+                echo "${KEY}=PASTE_YOUR_TOKEN_HERE" >> "$ENV_FILE"
+            else
+                echo "${KEY}=" >> "$ENV_FILE"
+            fi
+            log "Added missing ${KEY}= line to .env."
+        fi
+    done
 else
     read -rp "  Paste your Discord bot token (or Enter to skip): " BOT_TOKEN
 
@@ -114,6 +122,8 @@ else
 DANGER_DONTSHARETOYKEN=${BOT_TOKEN:-PASTE_YOUR_TOKEN_HERE}
 GEMINI_API_KEY=
 MONGODB_URI=
+SUPABASE_URL=
+SUPABASE_KEY=
 EOF
     chown "${BOT_USER}:${BOT_USER}" "$ENV_FILE"
     chmod 600 "$ENV_FILE"

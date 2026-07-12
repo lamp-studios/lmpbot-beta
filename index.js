@@ -2,8 +2,8 @@ import { readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Client, Collection, GatewayIntentBits, Partials } from "discord.js";
-import mongoose from "mongoose";
 import { config } from "./config.js";
+import { initStorage } from "./utils/db.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -56,12 +56,7 @@ async function loadEvents() {
 }
 
 async function main() {
-  if (config.mongoUri) {
-    await mongoose.connect(config.mongoUri);
-    console.log("connected to mongodb");
-  } else {
-    console.warn("[db] MONGODB_URI not set — database features will fail");
-  }
+  await initStorage();
 
   await loadCommands();
   await loadEvents();
