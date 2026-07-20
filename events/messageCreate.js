@@ -146,7 +146,7 @@ export default {
     // prefix commands
     if (!message.content.startsWith(config.prefix)) return;
 
-    const parts = message.content.slice(config.prefix.length).split(/\s+(.+)/);
+    const parts = message.content.slice(config.prefix.length).split(/\s+(.+)/s);
     const cmd = (parts[0] || "").toLowerCase();
     const args = parts[1] || "";
 
