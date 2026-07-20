@@ -70,6 +70,12 @@ export const supabase = {
       await client.from("member_vars").delete().eq("guild_id", guildId).eq("member_id", memberId).eq("key", key)
     );
   },
+  async searchMemberVar(key) {
+    const data = unwrap(
+      await client.from("member_vars").select("guild_id,member_id,value").eq("key", key)
+    );
+    return (data ?? []).map((r) => ({ guildId: r.guild_id, memberId: r.member_id, value: r.value }));
+  },
 
   // --- user facts ---
   async setUserFact(guildId, userId, key, value) {

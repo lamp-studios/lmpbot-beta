@@ -134,6 +134,20 @@ export async function setMemberVar(guildId, memberId, key, value) {
   );
 }
 
+export async function deleteMemberVar(guildId, memberId, key) {
+  const g = String(guildId);
+  const m = String(memberId);
+  await deleteEverywhere((b) => b.deleteMemberVar(g, m, key));
+}
+
+// Every member row across guilds that has `key` set (e.g. all stored birthdays).
+export async function searchMemberVar(key) {
+  return mergeByKey(
+    (b) => b.searchMemberVar(key),
+    (row) => `${row.guildId}:${row.memberId}`
+  );
+}
+
 // -------------------------
 // USER FACTS
 // -------------------------

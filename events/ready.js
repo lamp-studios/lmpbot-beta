@@ -1,5 +1,6 @@
 import { Events, ActivityType, PresenceUpdateStatus } from "discord.js";
 import { startHeartbeat } from "../utils/heartbeat.js";
+import { startBirthdayScheduler } from "../utils/birthdays.js";
 
 async function updateStatus(client) {
   const guildCount = client.guilds.cache.size;
@@ -39,5 +40,6 @@ export default {
     setInterval(() => updateStatus(client).catch(() => {}), 60_000);
 
     startHeartbeat(client);
+    startBirthdayScheduler(client);
   },
 };

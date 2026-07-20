@@ -82,6 +82,10 @@ export const mongo = {
   async deleteMemberVar(guildId, memberId, key) {
     await MemberVar.deleteOne({ guildId, memberId, key });
   },
+  async searchMemberVar(key) {
+    const rows = await MemberVar.find({ key }).lean();
+    return rows.map((r) => ({ guildId: r.guildId, memberId: r.memberId, value: r.value }));
+  },
 
   // --- user facts ---
   async setUserFact(guildId, userId, key, value) {

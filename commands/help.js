@@ -18,6 +18,9 @@ export default {
       "- /members (ADMINS ONLY, shows every verified members, " +
       "only the specified member will be shown if the option is specified)\n" +
       "- /welcome (ADMINS ONLY, read autocomplete)\n" +
+      "- /birthday set (set your birthday, e.g. /birthday set 30/01)\n" +
+      "- /birthday settings|enable|disable (ADMINS ONLY, configure birthday " +
+      "role, announcement channel, custom message and ping)\n" +
       "## **Prefix Commands: (.)**\n" +
       "- .up (OWNER ONLY, updates all cmds)\n" +
       "- .exe (OWNER ONLY, evals a specified command)\n";

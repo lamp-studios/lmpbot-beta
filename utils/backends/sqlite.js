@@ -92,6 +92,12 @@ export const sqlite = {
       key
     );
   },
+  async searchMemberVar(key) {
+    return db
+      .prepare("SELECT guild_id, member_id, value FROM member_vars WHERE key = ?")
+      .all(key)
+      .map((r) => ({ guildId: r.guild_id, memberId: r.member_id, value: r.value }));
+  },
 
   // --- user facts ---
   async setUserFact(guildId, userId, key, value) {
