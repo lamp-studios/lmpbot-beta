@@ -6,11 +6,13 @@ featuring moderation, verification, Gemini-powered chat, and server management t
 ## Features
 
 - **Verification system** - Role-based member verification
-- **Welcome messages** - Mass welcome message sender with mention control
+- **Birthdays** - Daily announcements, an auto-granted birthday role and a custom message
+- **Welcome messages** - Mass welcome message sender with mention control (currently disabled)
 - **Anti-bot detection** - Auto-ban for messages posted in restricted channels
-- **Gemini chatbot** - Reply to messages in a designated channel using Gemini
-- **Forum auto-staff** - Automatically add a staff role to newly-created forum threads
+- **Gemini chatbot** - Reply to messages in a designated channel using Gemini, with per-user chat memory and remembered facts
+- **Forum auto-staff** - Automatically add the server owner and a staff role to newly-created forum threads
 - **News broadcast** - Push announcements to every guild's configured news channel
+- **Uptime heartbeat** - Optional Uptime Kuma push and Prometheus Pushgateway metrics
 - **Slash & prefix commands** - Full support for both command types
 
 ## Setup
@@ -38,7 +40,7 @@ Create a `.env` file in the project root:
 # Required
 DANGER_DONTSHARETOYKEN=your_discord_bot_token
 
-# Optional — chatbot is disabled without it
+# Optional, the chatbot is disabled without it
 GEMINI_API_KEY=your_gemini_api_key
 
 # Storage (see "Database Setup" below). All three are optional; the bot falls
@@ -46,6 +48,10 @@ GEMINI_API_KEY=your_gemini_api_key
 MONGODB_URI=your_mongodb_connection_string
 SUPABASE_URL=your_supabase_project_url
 SUPABASE_KEY=your_supabase_service_role_key
+
+# Optional monitoring (see "Monitoring" below). Both are skipped if unset.
+KUMA_PUSH_URL=your_uptime_kuma_push_url
+PUSHGATEWAY_URL=your_prometheus_pushgateway_url
 ```
 
 ### Running
@@ -85,7 +91,7 @@ MongoDB  ->  Supabase  ->  SQLite (local file)
 
 You can configure **any subset** of these:
 
-- Set **none** and the bot runs entirely on a local SQLite file — zero setup,
+- Set **none** and the bot runs entirely on a local SQLite file, zero setup,
   fine for testing or a single small server.
 - Set **MongoDB** as your primary, and optionally add **Supabase** as a safety
   net for when the Mongo free tier fills up.
@@ -111,8 +117,8 @@ Using a free [MongoDB Atlas](https://www.mongodb.com/atlas) cluster:
 5. Replace `<user>`/`<password>`, add a database name (e.g. `/lmpbot`), and put
    it in `.env` as `MONGODB_URI`.
 
-Collections and indexes are created automatically on first write — no manual
-schema step needed.
+Collections and indexes are created automatically on first write, so there is no
+manual schema step needed.
 
 ### Supabase (fallback)
 
@@ -128,7 +134,7 @@ Using a free [Supabase](https://supabase.com) project:
      `SUPABASE_KEY`. The service-role key is required so the bot can write past
      Row Level Security.
 
-> ⚠️ The `service_role` key bypasses RLS — treat it like a password and never
+> ⚠️ The `service_role` key bypasses RLS, so treat it like a password and never
 > commit it or expose it client-side.
 
 If `SUPABASE_URL`/`SUPABASE_KEY` are unset, the Supabase tier is simply skipped.
@@ -140,9 +146,13 @@ If `SUPABASE_URL`/`SUPABASE_KEY` are unset, the Supabase tier is simply skipped.
 | Command | Permission | Description |
 |---------|-----------|-------------|
 | `/help` | Everyone | Shows all available commands |
-| `/welcome` | Admin | Sends welcome messages for all members to a channel |
-| `/members` | Everyone | Shows all verified members |
-| `/set_verification_role` | Admin | Sets the role granted on verification |
+| `/birthday set` | Everyone | Sets your own birthday as day/month, e.g. `30/01` |
+| `/birthday settings` | Admin | Views or changes the birthday role, channel, message, ping and set-channel |
+| `/birthday enable` | Admin | Turns the birthday feature on |
+| `/birthday disable` | Admin | Turns the birthday feature off |
+| `/welcome` | Owner | Sends welcome messages for all members to a channel (currently disabled) |
+| `/members` | Everyone | Shows all verified members (ephemeral reply, mentions are not pinged) |
+| `/set_verification_role` | Admin | Sets the role granted on verification, and enables verification. Run it with no role to remove the role and disable verification again |
 | `/set_bot_channel` | Admin | Sets the "dont talk" channel (auto-ban on message) |
 | `/set_chatbot_channel` | Admin | Sets a channel for Gemini chatbot replies |
 | `/set_forum_channel` | Admin | Sets a forum channel + staff role for auto-add on new threads |
@@ -158,6 +168,48 @@ If `SUPABASE_URL`/`SUPABASE_KEY` are unset, the Supabase tier is simply skipped.
 | `.ping` | Everyone | Ping the bot |
 | `.info` | Everyone | Show bot info (ping, OS, etc.) |
 | `.verify` | Everyone | Verify yourself on the server |
+
+## Birthdays
+
+Members save a birthday with `/birthday set 30/01` (day/month, `30/1` and `3/1`
+also parse). Admins configure the rest with `/birthday settings`:
+
+| Option | What it does |
+|--------|--------------|
+| `role` | Role granted to a member for the day |
+| `channel` | Channel the announcement is posted in |
+| `message` | Custom announcement, supports `{user}`, `{mention}` and `{name}` |
+| `ping_role` | Role pinged in the announcement (setting it also turns the ping on) |
+| `ping` | Turns the announcement ping on or off |
+| `set_channel` | Restricts `/birthday set` to one channel |
+
+Running `/birthday settings` with no options prints the current configuration.
+The feature stays off until an admin runs `/birthday enable`.
+
+How the scheduler behaves:
+
+- Dates are stored as a bare `DD/MM` string with no timezone, and are compared
+  against the bot host's local date. Whichever calendar day the host is on is
+  the day everyone gets announced.
+- The scan runs every 30 minutes but does nothing before 08:00 host-local time,
+  and marks each guild as done for the day once it runs. That holds across
+  restarts, so nobody gets announced twice.
+- The birthday role is reconciled on every run: today's celebrants get it, and
+  anyone else still holding it (yesterday's celebrants) has it removed.
+- `29/02` is accepted as a date, but it only announces in leap years.
+
+## Monitoring
+
+If `KUMA_PUSH_URL` is set, the bot pushes an [Uptime Kuma](https://uptime.kuma.pet)
+push heartbeat every 60 seconds with its gateway ping and ready state. Any query
+string on the URL is stripped before the bot adds its own parameters.
+
+If `PUSHGATEWAY_URL` is set, the same loop also posts `lmpbot_up` and
+`lmpbot_ping_ms` gauges to a [Prometheus Pushgateway](https://github.com/prometheus/pushgateway)
+under the job name `lmpbot`.
+
+The two are independent, so you can enable either, both or neither. With neither
+set the heartbeat loop never starts.
 
 ## Tech Stack
 

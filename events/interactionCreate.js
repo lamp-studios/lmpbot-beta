@@ -4,6 +4,18 @@ export default {
   name: Events.InteractionCreate,
 
   async execute(interaction) {
+    if (interaction.isAutocomplete()) {
+      const command = interaction.client.commands.get(interaction.commandName);
+      if (!command?.autocomplete) return;
+
+      try {
+        await command.autocomplete(interaction);
+      } catch (err) {
+        console.error(`Autocomplete failed for /${interaction.commandName}:`, err);
+      }
+      return;
+    }
+
     if (interaction.isChatInputCommand()) {
       const command = interaction.client.commands.get(interaction.commandName);
       if (!command) return;
