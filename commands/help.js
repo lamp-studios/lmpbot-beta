@@ -64,14 +64,17 @@ const COMMANDS = [
   {
     name: "set_bot_channel",
     type: "slash",
-    usage: "/set_bot_channel <channel>",
+    usage: "/set_bot_channel [channel] [log_channel]",
     perm: "Admin",
     short: "Sets a spambot trap channel.",
     long:
-      "Anyone who posts in this channel gets their message deleted, gets a DM, and is " +
+      "Anyone who posts in the `channel` gets their message deleted, gets a DM, and is " +
       "banned then immediately unbanned, which clears their recent messages and kicks " +
       "them off the server. Meant for a bait channel that real members are told not to " +
-      "post in.",
+      "post in.\n" +
+      "`log_channel` is optional and gets a note naming everyone the trap catches.\n" +
+      "Either option can be set on its own. Run the command with neither to turn the " +
+      "trap and its logging back off.",
   },
   {
     name: "set_chatbot_channel",

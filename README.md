@@ -156,7 +156,7 @@ If `SUPABASE_URL`/`SUPABASE_KEY` are unset, the Supabase tier is simply skipped.
 | `/welcome` | Owner | Sends welcome messages for all members to a channel (currently disabled) |
 | `/members` | Everyone | Shows all verified members (ephemeral reply, mentions are not pinged) |
 | `/set_verification_role` | Admin | Sets the role granted on verification, and enables verification. Run it with no role to remove the role and disable verification again |
-| `/set_bot_channel` | Admin | Sets the "dont talk" channel (auto-ban on message) |
+| `/set_bot_channel` | Admin | Sets the "dont talk" channel (auto-ban on message) and an optional log channel. Run it with no options to turn both off |
 | `/set_chatbot_channel` | Admin | Sets a channel for Gemini chatbot replies |
 | `/set_forum_channel` | Admin | Sets a forum channel + staff role for auto-add on new threads |
 | `/set_news_channel` | Admin | Sets the channel where bot news broadcasts are posted |

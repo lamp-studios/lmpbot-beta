@@ -26,6 +26,30 @@ function isOwner(message) {
   return message.client.ownerIds.has(message.author.id);
 }
 
+/**
+ * Note a caught spambot in the guild's log channel, if one is configured.
+ * Entirely best-effort: a missing, deleted or unwritable log channel must never
+ * stop the ban, so every failure here is swallowed.
+ */
+async function logSpambot(guild, user) {
+  const channelId = await getGuildVar(guild.id, "dont_talk_logging_channel");
+  if (!channelId) return;
+
+  const channel =
+    guild.channels.cache.get(channelId) ??
+    (await guild.channels.fetch(channelId).catch(() => null));
+  if (!channel?.isTextBased()) return;
+
+  await channel
+    .send({
+      content:
+        `**${user.username}** (\`${user.id}\`, <@${user.id}>) was detected as a ` +
+        "spambot and has been soft-banned from the server.",
+      allowedMentions: { parse: [] },
+    })
+    .catch(() => {});
+}
+
 export default {
   name: Events.MessageCreate,
 
@@ -37,17 +61,20 @@ export default {
     // dont_talk channel: auto-ban anyone who messages there
     const dontTalk = await getGuildVar(guildId, "dont_talk_channel");
     if (dontTalk && message.channel.id === dontTalk) {
+      const author = message.author;
       try {
-        await message.delete();
-        await message.author.send("Bot detected!!!").catch(() => {});
-        await message.guild.members.ban(message.author, {
+        // neither of these is worth losing the ban over
+        await message.delete().catch(() => {});
+        await author.send("Bot detected!!!").catch(() => {});
+
+        await message.guild.members.ban(author, {
           reason: "spambot detected",
           deleteMessageSeconds: 120,
         });
-        await message.guild.members.unban(
-          message.author,
-          "spambot detection unban system"
-        );
+        await message.guild.members.unban(author, "spambot detection unban system");
+
+        // only after the soft-ban went through, so the log can't claim otherwise
+        await logSpambot(message.guild, author);
       } catch (err) {
         if (err?.code !== 50013) console.error("dont_talk ban failed:", err);
       }
