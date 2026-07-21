@@ -8,6 +8,7 @@ import { PermissionFlagsBits } from "discord.js";
 import {
   getGuildVar,
   setGuildVar,
+  getMemberVar,
   searchMemberVar,
 } from "./db.js";
 
@@ -24,6 +25,9 @@ export const KEYS = {
 };
 
 export const MEMBER_KEY = "birthday";
+
+// per-member preference: "false" opts out of private /birthday replies
+export const EPHEMERAL_KEY = "birthday_ephemeral";
 
 export const DEFAULT_MESSAGE = "🎉 Happy birthday {user}! 🎂";
 
@@ -46,6 +50,30 @@ export function parseDate(input) {
 /** Today's date as "DD/MM" in the host's local time. */
 export function todayKey(now = new Date()) {
   return `${String(now.getDate()).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/** Sort key that puts "DD/MM" dates in calendar order, January first. */
+export function calendarOrder(date) {
+  const [day, month] = date.split("/").map(Number);
+  return month * 100 + day;
+}
+
+/**
+ * Whole days from today until "DD/MM" next comes round; 0 means today. 29/02
+ * jumps to the next leap year instead of sliding onto 01/03, so it can be up to
+ * eight years out — hence the bounded search rather than a single subtraction.
+ */
+export function daysUntil(date, now = new Date()) {
+  const [day, month] = date.split("/").map(Number);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  for (let year = today.getFullYear(); year <= today.getFullYear() + 8; year++) {
+    const next = new Date(year, month - 1, day);
+    if (next.getMonth() !== month - 1) continue; // 29/02 in a non-leap year
+    // round, because a DST change makes the gap 23 or 25 hours
+    if (next >= today) return Math.round((next - today) / (24 * 60 * 60 * 1000));
+  }
+  return null;
 }
 
 /** Local calendar day as "YYYY-MM-DD"; used to run the scan once per day. */
@@ -75,6 +103,22 @@ export async function getConfig(guildId) {
     pingEnabled: pingEnabled === "true",
     setChannelId: setChannel,
   };
+}
+
+/**
+ * Every stored birthday in one guild as `[{ memberId, date }]`, unsorted.
+ * Anything that no longer parses as a day/month is dropped.
+ */
+export async function getGuildBirthdays(guildId) {
+  const rows = await searchMemberVar(MEMBER_KEY);
+  return rows
+    .filter((row) => String(row.guildId) === String(guildId) && parseDate(row.value))
+    .map((row) => ({ memberId: String(row.memberId), date: row.value }));
+}
+
+/** Whether this member wants their /birthday replies kept private. Default yes. */
+export async function prefersEphemeral(guildId, memberId) {
+  return (await getMemberVar(guildId, memberId, EPHEMERAL_KEY)) !== "false";
 }
 
 /** Fill placeholders in a custom announcement message. */

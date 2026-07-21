@@ -147,6 +147,9 @@ If `SUPABASE_URL`/`SUPABASE_KEY` are unset, the Supabase tier is simply skipped.
 |---------|-----------|-------------|
 | `/help` | Everyone | Shows all available commands |
 | `/birthday set` | Everyone | Sets your own birthday as day/month, e.g. `30/01` |
+| `/birthday list` | Everyone | Lists every birthday on the server in calendar order |
+| `/birthday upcoming` | Everyone | Lists the birthdays in the next `days` days (default 30) |
+| `/birthday visibility` | Everyone | Picks whether your `/birthday` replies are private or public |
 | `/birthday settings` | Admin | Views or changes the birthday role, channel, message, ping and set-channel |
 | `/birthday enable` | Admin | Turns the birthday feature on |
 | `/birthday disable` | Admin | Turns the birthday feature off |
@@ -185,6 +188,24 @@ also parse). Admins configure the rest with `/birthday settings`:
 
 Running `/birthday settings` with no options prints the current configuration.
 The feature stays off until an admin runs `/birthday enable`.
+
+### Browsing birthdays
+
+`/birthday list` prints every birthday on the server in calendar order, grouped
+by month. `/birthday upcoming` prints only the ones that are close, soonest
+first, over the next 30 days unless a `days` option says otherwise. Both skip
+members who have left, never ping anyone, and cut off with a "…and N more" note
+rather than overflowing Discord's message limit.
+
+### Reply visibility
+
+`/birthday` replies are only visible to the person who ran the command. Anyone
+who would rather have them posted in the channel can flip that for themselves
+with `/birthday visibility mode:Everyone (public)`, and back with
+`mode:Only me (ephemeral)`. The preference is per-member per-server, it covers
+`set`, `list`, `upcoming`, `settings` and `enable`/`disable`, and running
+`/birthday visibility` with no option reports the current choice. Errors and
+permission denials ignore the preference and stay private.
 
 How the scheduler behaves:
 

@@ -19,11 +19,18 @@ const COMMANDS = [
   {
     name: "birthday",
     type: "slash",
-    usage: "/birthday set|settings|enable|disable",
+    usage: "/birthday set|list|upcoming|visibility|settings|enable|disable",
     perm: "Everyone, settings are Admin",
     short: "Birthday announcements and roles.",
     long:
       "- `/birthday set <date>` (Everyone) saves your birthday as day/month, e.g. `30/01`.\n" +
+      "- `/birthday list` (Everyone) shows every birthday on the server in calendar " +
+      "order, grouped by month.\n" +
+      "- `/birthday upcoming [days]` (Everyone) shows just the ones coming up, soonest " +
+      "first. Defaults to the next 30 days.\n" +
+      "- `/birthday visibility [mode]` (Everyone) picks whether your `/birthday` replies " +
+      "are only visible to you or posted in the channel. Replies are private until you " +
+      "change it. Run it with no option to see what you're on.\n" +
       "- `/birthday settings` (Admin) sets the birthday role, announcement channel, " +
       "custom message (`{user}`, `{mention}`, `{name}`), ping role, and the channel " +
       "members have to run `/birthday set` in. Run it with no options to see the " +
