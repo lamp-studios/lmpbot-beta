@@ -20,6 +20,9 @@ lmpbot-beta/
 │
 ├── commands/                   # Slash commands (auto-loaded; one command per file)
 │   ├── help.js                 # /help
+│   ├── birthday.js             # /birthday - birthday announcements and roles
+│   ├── lockdown.js             # /lockdown - hide every channel bar one
+│   ├── undolockdown.js         # /undolockdown - restore what /lockdown changed
 │   ├── members.js              # /members - show verified members
 │   ├── welcome.js              # /welcome - mass welcome sender
 │   ├── set_chatbot_channel.js  # /set_chatbot_channel
@@ -37,6 +40,8 @@ lmpbot-beta/
 │
 ├── utils/
 │   ├── db.js                   # mongoose models + guild/member/fact/chat helpers
+│   ├── birthdays.js            # birthday config keys, date helpers, daily scheduler
+│   ├── lockdown.js             # lockdown state, apply/restore of @everyone View Channel
 │   ├── gemini.js               # Gemini chat helper (@google/generative-ai)
 │   ├── memory.js               # fact extraction, message scoring, history compression, uptime
 │   └── deploy.js               # registerCommands() — global slash command sync (.up)

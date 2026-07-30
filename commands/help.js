@@ -41,6 +41,38 @@ const COMMANDS = [
       "taken back off the next day.",
   },
   {
+    name: "lockdown",
+    type: "slash",
+    usage: "/lockdown [channel-exception] [role]",
+    perm: "Admin",
+    short: "Hides every channel from a role, apart from one.",
+    long:
+      "Denies **View Channel** in every channel on the server, so the role can't see " +
+      "anything.\n" +
+      "- `channel-exception` is the one channel that stays visible. Leave it out and the " +
+      "whole server goes dark.\n" +
+      "- `role` is who gets shut out, and defaults to `@everyone`. Point it at your " +
+      "member role if that role is what grants View Channel, since a deny on `@everyone` " +
+      "does nothing to people who have it.\n" +
+      "Channels the role already couldn't see are left alone, and so is every other " +
+      "permission — only the View Channel bit is touched.\n" +
+      "What each channel looked like beforehand is saved, so `/undolockdown` puts it all " +
+      "back exactly as it was. Running it again for a *different* role adds that role to " +
+      "the same lockdown; a role that's already locked needs `/undolockdown` first.",
+  },
+  {
+    name: "undolockdown",
+    type: "slash",
+    usage: "/undolockdown",
+    perm: "Admin",
+    short: "Lifts the lockdown and restores every channel.",
+    long:
+      "Restores the View Channel permission on every channel `/lockdown` changed, for " +
+      "every role it locked, back to whatever it was before — allowed, denied or unset. " +
+      "Channels that have been deleted since are skipped, and any the bot still can't " +
+      "edit stay on record so running the command again finishes them off.",
+  },
+  {
     name: "members",
     type: "slash",
     usage: "/members",

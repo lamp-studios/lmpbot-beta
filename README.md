@@ -9,6 +9,7 @@ featuring moderation, verification, Gemini-powered chat, and server management t
 - **Birthdays** - Daily announcements, an auto-granted birthday role and a custom message
 - **Welcome messages** - Mass welcome message sender with mention control (currently disabled)
 - **Anti-bot detection** - Auto-ban for messages posted in restricted channels
+- **Server lockdown** - Hide every channel from a role bar one, with an exact one-command undo
 - **Gemini chatbot** - Reply to messages in a designated channel using Gemini, with per-user chat memory and remembered facts
 - **Forum auto-staff** - Automatically add the server owner and a staff role to newly-created forum threads
 - **News broadcast** - Push announcements to every guild's configured news channel
@@ -153,6 +154,8 @@ If `SUPABASE_URL`/`SUPABASE_KEY` are unset, the Supabase tier is simply skipped.
 | `/birthday settings` | Admin | Views or changes the birthday role, channel, message, ping and set-channel |
 | `/birthday enable` | Admin | Turns the birthday feature on |
 | `/birthday disable` | Admin | Turns the birthday feature off |
+| `/lockdown` | Admin | Hides every channel from a `role` (default `@everyone`), apart from an optional `channel-exception` |
+| `/undolockdown` | Admin | Lifts the lockdown and restores every channel's View Channel permission |
 | `/welcome` | Owner | Sends welcome messages for all members to a channel (currently disabled) |
 | `/members` | Everyone | Shows all verified members (ephemeral reply, mentions are not pinged) |
 | `/set_verification_role` | Admin | Sets the role granted on verification, and enables verification. Run it with no role to remove the role and disable verification again |
@@ -218,6 +221,60 @@ How the scheduler behaves:
 - The birthday role is reconciled on every run: today's celebrants get it, and
   anyone else still holding it (yesterday's celebrants) has it removed.
 - `29/02` is accepted as a date, but it only announces in leap years.
+
+## Lockdown
+
+`/lockdown` denies **View Channel** in every channel on the server.
+`/lockdown channel-exception:#announcements` leaves that one channel visible;
+with no exception the whole server goes dark. `/undolockdown` puts it all back.
+
+`role` picks who gets shut out and defaults to `@everyone`:
+
+```
+/lockdown channel-exception:#announcements
+/lockdown channel-exception:#announcements role:@Members
+```
+
+Point it at your member role if that role is what grants View Channel — on a
+server where access is gated behind a "verified" or "member" role, a deny on
+`@everyone` changes nothing for the people who have it.
+
+Running `/lockdown` again for a **different** role folds that role into the same
+lockdown, and one `/undolockdown` lifts them all. A role that is already locked
+is refused, because a second pass would save the locked-down permissions as the
+ones to restore and there'd be nothing left to go back to.
+
+What it does and does not touch:
+
+- Only the target role's **View Channel** bit is changed. Every other overwrite,
+  role and permission is left exactly as it is.
+- Anyone whose *other* roles explicitly allow View Channel (staff, moderators)
+  still sees everything. The lockdown only takes away the access that came from
+  the role you named, which is what leaves your team a way back in.
+- A role holding **Administrator** ignores channel permissions entirely, so
+  locking one down hides nothing. The reply says so if you try.
+- Channels the role **already couldn't see** are skipped, so lifting the
+  lockdown can never reveal a private channel it never touched.
+- Categories are locked too, and each channel is edited individually — the API
+  does not push category permissions down to the channels inside them.
+- The exception channel is *explicitly* allowed rather than just skipped, so it
+  is visible whatever it inherited before. If it was hidden beforehand, the reply
+  says so.
+- Threads are skipped; they follow their parent channel.
+
+The state before the lockdown is written to the database per role and per channel
+(allowed, denied or unset), which is what lets `/undolockdown` restore each
+channel precisely instead of flattening everything to "visible". It survives a
+restart, so an undo still works days later. A role deleted while the lockdown is
+running is simply reported — Discord drops its overwrites along with it.
+
+The bot needs **Manage Roles**. Channels it can't edit are skipped and named in
+the reply. If it isn't an administrator *and* it holds the role being locked down
+(which `@everyone` always is), it grants itself a temporary View Channel allow on
+each channel it hides — otherwise the deny would apply to the bot too and lock it
+out of undoing its own lockdown. Those temporary overwrites are removed by
+`/undolockdown`. Anything that fails to restore stays on record, so running
+`/undolockdown` again picks up only what is left.
 
 ## Monitoring
 
