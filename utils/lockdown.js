@@ -2,7 +2,7 @@
 // it all back.
 //
 // The role defaults to @everyone but can be any role, because plenty of servers
-// gate access behind a "member" role that grants View Channel explicitly — a
+// gate access behind a "member" role that grants View Channel explicitly, and a
 // deny on @everyone does nothing to those people. Each locked role is recorded
 // on its own, so a second /lockdown can cover another role without disturbing
 // the first, and one /undolockdown lifts the lot.

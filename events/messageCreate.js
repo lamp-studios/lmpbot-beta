@@ -12,7 +12,7 @@ import {
   addChatMemory,
   getChatMemory,
 } from "../utils/db.js";
-import * as gemini from "../utils/gemini.js";
+import * as ai from "../utils/ai.js";
 import {
   extractFacts,
   buildSmartMemory,
@@ -137,17 +137,18 @@ export default {
         });
       }
 
-      // CALL GEMINI
-      let reply;
+      // CALL THE GUILD'S CHATBOT AI (Gemini by default, see /setchatbotai)
+      let result;
       try {
-        reply = await gemini.chat(message.content, history);
+        result = await ai.chat(guildId, message.content, history);
       } catch (err) {
-        await loading.edit(`Gemini failed. ${err}`);
+        await loading.edit(`Chatbot failed. ${String(err?.message ?? err).slice(0, 1900)}`);
         return;
       }
 
+      const reply = result.text;
       if (reply === null) {
-        await loading.edit("Gemini failed.");
+        await loading.edit(`${result.label} failed.`);
         return;
       }
 

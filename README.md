@@ -1,7 +1,7 @@
 # lmpbot-beta
 
 A Discord bot built with [Discord.JS](https://discord.js.org)
-featuring moderation, verification, Gemini-powered chat, and server management tools.
+featuring moderation, verification, AI chat (Gemini, OpenAI or a local Ollama model), and server management tools.
 
 ## Features
 
@@ -10,7 +10,7 @@ featuring moderation, verification, Gemini-powered chat, and server management t
 - **Welcome messages** - Mass welcome message sender with mention control (currently disabled)
 - **Anti-bot detection** - Auto-ban for messages posted in restricted channels
 - **Server lockdown** - Hide every channel from a role bar one, with an exact one-command undo
-- **Gemini chatbot** - Reply to messages in a designated channel using Gemini, with per-user chat memory and remembered facts
+- **AI chatbot** - Reply to messages in a designated channel, with per-user chat memory and remembered facts. Runs on Gemini, OpenAI or a local Ollama model, set globally or per server by the bot owner with `/setchatbotai`
 - **Forum auto-staff** - Automatically add the server owner and a staff role to newly-created forum threads
 - **News broadcast** - Push announcements to every guild's configured news channel
 - **Uptime heartbeat** - Optional Uptime Kuma push and Prometheus Pushgateway metrics
@@ -41,8 +41,17 @@ Create a `.env` file in the project root:
 # Required
 DANGER_DONTSHARETOYKEN=your_discord_bot_token
 
-# Optional, the chatbot is disabled without it
+# Optional, the Gemini chatbot is disabled without it
 GEMINI_API_KEY=your_gemini_api_key
+
+# Optional, only for the OpenAI chatbot. The base URL defaults to OpenAI itself
+# and can point at any OpenAI-compatible endpoint.
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_BASE_URL=https://api.openai.com/v1
+
+# Optional, only for the Ollama chatbot. Defaults to http://127.0.0.1:11434,
+# so you only need this if Ollama runs somewhere else.
+OLLAMA_HOST=http://127.0.0.1:11434
 
 # Storage (see "Database Setup" below). All three are optional; the bot falls
 # back Mongo -> Supabase -> local SQLite, so with none set it still runs on SQLite.
@@ -160,7 +169,8 @@ If `SUPABASE_URL`/`SUPABASE_KEY` are unset, the Supabase tier is simply skipped.
 | `/members` | Everyone | Shows all verified members (ephemeral reply, mentions are not pinged) |
 | `/set_verification_role` | Admin | Sets the role granted on verification, and enables verification. Run it with no role to remove the role and disable verification again |
 | `/set_bot_channel` | Admin | Sets the "dont talk" channel (auto-ban on message) and an optional log channel. Run it with no options to turn both off |
-| `/set_chatbot_channel` | Admin | Sets a channel for Gemini chatbot replies |
+| `/set_chatbot_channel` | Admin | Sets a channel for AI chatbot replies |
+| `/setchatbotai` | Owner | Picks the chatbot AI: `gemini`, `openai`, or `ollama` with a model name that is installed automatically. `scope` sets it for this server, globally for every server, or clears the server's own setting. Run it with no options to see the current one |
 | `/set_forum_channel` | Admin | Sets a forum channel + staff role for auto-add on new threads |
 | `/set_news_channel` | Admin | Sets the channel where bot news broadcasts are posted |
 
@@ -235,7 +245,7 @@ with no exception the whole server goes dark. `/undolockdown` puts it all back.
 /lockdown channel-exception:#announcements role:@Members
 ```
 
-Point it at your member role if that role is what grants View Channel — on a
+Point it at your member role if that role is what grants View Channel. On a
 server where access is gated behind a "verified" or "member" role, a deny on
 `@everyone` changes nothing for the people who have it.
 
@@ -255,7 +265,7 @@ What it does and does not touch:
   locking one down hides nothing. The reply says so if you try.
 - Channels the role **already couldn't see** are skipped, so lifting the
   lockdown can never reveal a private channel it never touched.
-- Categories are locked too, and each channel is edited individually — the API
+- Categories are locked too, and each channel is edited individually, because the API
   does not push category permissions down to the channels inside them.
 - The exception channel is *explicitly* allowed rather than just skipped, so it
   is visible whatever it inherited before. If it was hidden beforehand, the reply
@@ -266,12 +276,12 @@ The state before the lockdown is written to the database per role and per channe
 (allowed, denied or unset), which is what lets `/undolockdown` restore each
 channel precisely instead of flattening everything to "visible". It survives a
 restart, so an undo still works days later. A role deleted while the lockdown is
-running is simply reported — Discord drops its overwrites along with it.
+running is simply reported; Discord drops its overwrites along with it.
 
 The bot needs **Manage Roles**. Channels it can't edit are skipped and named in
 the reply. If it isn't an administrator *and* it holds the role being locked down
 (which `@everyone` always is), it grants itself a temporary View Channel allow on
-each channel it hides — otherwise the deny would apply to the bot too and lock it
+each channel it hides, otherwise the deny would apply to the bot too and lock it
 out of undoing its own lockdown. Those temporary overwrites are removed by
 `/undolockdown`. Anything that fails to restore stays on record, so running
 `/undolockdown` again picks up only what is left.
@@ -296,6 +306,8 @@ set the heartbeat loop never starts.
 - [@supabase/supabase-js](https://github.com/supabase/supabase-js) - Supabase client (fallback storage)
 - [node:sqlite](https://nodejs.org/api/sqlite.html) - built-in SQLite (last-resort local storage)
 - [@google/generative-ai](https://www.npmjs.com/package/@google/generative-ai) - Gemini chatbot SDK
+- [OpenAI](https://platform.openai.com/docs/api-reference/chat) - optional chatbot models, over the Chat Completions HTTP API (no extra dependency)
+- [Ollama](https://ollama.com) - optional local chatbot models, over its HTTP API (no extra dependency)
 - [dotenv](https://github.com/motdotla/dotenv) - Environment variable loading
 
 ## License

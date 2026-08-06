@@ -94,7 +94,7 @@ if [[ -f "$ENV_FILE" ]]; then
     warn ".env already exists. Filling in any missing keys: nano ${ENV_FILE}"
     # add any expected keys that aren't already present, leaving existing values
     # untouched (blank storage keys just disable that tier)
-    for KEY in DANGER_DONTSHARETOYKEN GEMINI_API_KEY MONGODB_URI SUPABASE_URL SUPABASE_KEY; do
+    for KEY in DANGER_DONTSHARETOYKEN GEMINI_API_KEY OPENAI_API_KEY OPENAI_BASE_URL OLLAMA_HOST MONGODB_URI SUPABASE_URL SUPABASE_KEY; do
         if ! grep -q "^${KEY}=" "$ENV_FILE"; then
             if [[ "$KEY" == "DANGER_DONTSHARETOYKEN" ]]; then
                 echo "${KEY}=PASTE_YOUR_TOKEN_HERE" >> "$ENV_FILE"
@@ -110,6 +110,9 @@ else
     cat > "$ENV_FILE" <<EOF
 DANGER_DONTSHARETOYKEN=${BOT_TOKEN:-PASTE_YOUR_TOKEN_HERE}
 GEMINI_API_KEY=
+OPENAI_API_KEY=
+OPENAI_BASE_URL=
+OLLAMA_HOST=
 MONGODB_URI=
 SUPABASE_URL=
 SUPABASE_KEY=

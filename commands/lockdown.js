@@ -102,8 +102,8 @@ export default {
     if (!result.state) {
       return interaction.editReply({
         content: result.skipped.length
-          ? "Nothing changed — I can't edit permissions in any of this server's channels."
-          : `Nothing changed — every channel is already hidden from ${target}.`,
+          ? "Nothing changed. I can't edit permissions in any of this server's channels."
+          : `Nothing changed, every channel is already hidden from ${target}.`,
         allowedMentions: { parse: [] },
       });
     }
@@ -127,7 +127,7 @@ function summary(result, exception, previous) {
 
   if (target.permissions.has(PermissionFlagsBits.Administrator)) {
     lines.push(
-      `\n⚠️ ${target} has **Administrator**, which ignores channel permissions — its ` +
+      `\n⚠️ ${target} has **Administrator**, which ignores channel permissions, so its ` +
         "members can still see everything."
     );
   }

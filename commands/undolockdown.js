@@ -73,7 +73,7 @@ function summary(result, state) {
   if (goneRoles.length) {
     notes.push(
       `${goneRoles.length} locked ${goneRoles.length === 1 ? "role has" : "roles have"} been ` +
-        "deleted since — Discord dropped their permissions with them, so there was nothing to put back."
+        "deleted since. Discord dropped their permissions with them, so there was nothing to put back."
     );
   }
   if (missing.length) {
@@ -86,7 +86,7 @@ function summary(result, state) {
   if (failed.length) {
     notes.push(
       `**Still hidden**, I couldn't edit ${failed.length}: ${nameList(failed)}\n` +
-        "  Give me **Manage Roles** there and run `/undolockdown` again — the rest stays as it is."
+        "  Give me **Manage Roles** there and run `/undolockdown` again; the rest stays as it is."
     );
   }
   if (notes.length) lines.push("", ...notes.map((n) => `- ${n}`));

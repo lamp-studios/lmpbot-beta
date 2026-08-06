@@ -1,6 +1,7 @@
 import { Events, ActivityType, PresenceUpdateStatus } from "discord.js";
 import { startHeartbeat } from "../utils/heartbeat.js";
 import { startBirthdayScheduler } from "../utils/birthdays.js";
+import { resolveOwnerIds } from "../utils/owner.js";
 
 async function updateStatus(client) {
   const guildCount = client.guilds.cache.size;
@@ -27,14 +28,7 @@ export default {
     console.log("ready");
 
     // resolve owner id(s) from the application (team members or single owner)
-    const app = await client.application.fetch();
-    if (app.owner) {
-      if (app.owner.members) {
-        for (const id of app.owner.members.keys()) client.ownerIds.add(id);
-      } else {
-        client.ownerIds.add(app.owner.id);
-      }
-    }
+    await resolveOwnerIds(client);
 
     await updateStatus(client);
     setInterval(() => updateStatus(client).catch(() => {}), 60_000);
