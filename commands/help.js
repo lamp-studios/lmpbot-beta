@@ -118,6 +118,12 @@ const COMMANDS = [
       "Every message in this channel gets an AI reply. The bot keeps a per-user " +
       "history of the channel and remembers facts about you, like your name or what " +
       "you're building, so it carries context between messages.\n" +
+      "Post an image and the AI looks at it, as long as the model can see images " +
+      "(Gemini, GPT-4o and Ollama vision models like `llava` can; plain text models " +
+      "can't). Up to 4 images a message, 5 MB each.\n" +
+      "Mentions are handed to the AI as `@username (display name, id)` so it knows who " +
+      "everyone is, and it can mention people back. It can only ping you and anyone " +
+      "you mentioned yourself.\n" +
       "Which AI answers is set with `/setchatbotai`, and is Gemini until you change it.",
   },
   {

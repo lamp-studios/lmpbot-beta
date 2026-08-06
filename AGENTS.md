@@ -50,6 +50,8 @@ lmpbot-beta/
 │   ├── ollama.js               # Ollama chat helper + model install, over its HTTP API
 │   ├── owner.js                # bot owner ids (single owner or dev team) + isBotOwner()
 │   ├── memory.js               # fact extraction, message scoring, history compression, uptime
+│   ├── mentions.js             # rewrite <@id> as @username (display name, id) for the AI
+│   ├── attachments.js          # download image attachments as base64 for the AI
 │   └── deploy.js               # registerCommands(): global slash command sync (.up)
 │
 └── python-code/                # Legacy py-cord implementation (gitignored, do not touch)

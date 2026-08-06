@@ -19,6 +19,8 @@ import {
   formatUptime,
   splitMessage,
 } from "../utils/memory.js";
+import { resolveMentions, describeUser } from "../utils/mentions.js";
+import { collectImages } from "../utils/attachments.js";
 
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 
@@ -84,17 +86,27 @@ export default {
     // chatbot channel
     const chatbotCh = await getGuildVar(guildId, "chatbot_channel");
     if (chatbotCh && message.channel.id === chatbotCh) {
+      // nothing the model can work with (a sticker or an embed on its own)
+      if (!message.content.trim() && message.attachments.size === 0) return;
+
       const loading = await message.channel.send(
         "Loading... <a:CircleLoader:1492857500637335685>"
       );
 
+      // BUILD THE PROMPT: mentions become names the model understands, and any
+      // images are downloaded and described in the text as well as sent along
+      const { images, notes } = await collectImages(message.attachments.values());
+      const resolved = await resolveMentions(message.content, message);
+      const prompt = [resolved, ...notes].filter(Boolean).join("\n");
+
       // SAVE USER MESSAGE + FETCH HISTORY
+      // the resolved text is what gets stored, so old turns stay readable
       await addChatMemory(
         guildId,
         message.channel.id,
         message.author.id,
         "user",
-        message.content
+        prompt
       );
 
       const rows = await getChatMemory(
@@ -119,7 +131,7 @@ export default {
         });
       }
 
-      const facts = extractFacts(message.content);
+      const facts = extractFacts(resolved);
       for (const [k, v] of Object.entries(facts)) {
         if (v.length > 2) {
           await setUserFact(guildId, message.author.id, k, v);
@@ -137,10 +149,23 @@ export default {
         });
       }
 
+      // who is speaking, and how to read the mentions in what follows
+      history.unshift({
+        role: "user",
+        parts: [
+          {
+            text:
+              `You are talking to ${describeUser(message.author, message.member)} ` +
+              `in the Discord server "${message.guild.name}". People are written as ` +
+              "@username (display name, id: 123456789); mention someone back with <@their id>.",
+          },
+        ],
+      });
+
       // CALL THE GUILD'S CHATBOT AI (Gemini by default, see /setchatbotai)
       let result;
       try {
-        result = await ai.chat(guildId, message.content, history);
+        result = await ai.chat(guildId, prompt, history, images);
       } catch (err) {
         await loading.edit(`Chatbot failed. ${String(err?.message ?? err).slice(0, 1900)}`);
         return;
@@ -162,10 +187,16 @@ export default {
       );
 
       // SEND RESPONSE
+      // The model is told it can mention people, and anyone can ask it to
+      // mention anyone, so pings are limited to whoever is already in this
+      // exchange. Everything else renders as a name without notifying.
+      const allowedMentions = {
+        users: [message.author.id, ...message.mentions.users.keys()],
+      };
       const chunks = splitMessage(reply, 2000);
-      await loading.edit(chunks[0]);
+      await loading.edit({ content: chunks[0], allowedMentions });
       for (const chunk of chunks.slice(1)) {
-        await message.channel.send(chunk);
+        await message.channel.send({ content: chunk, allowedMentions });
       }
 
       return;

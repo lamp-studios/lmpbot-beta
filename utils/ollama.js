@@ -131,21 +131,30 @@ export async function pullModel(name, onProgress) {
 }
 
 /**
- * Send a prompt to an Ollama model with optional prior history.
+ * Send a prompt to an Ollama model with optional prior history and images.
+ * Images ride along on the newest user message as bare base64, which is what
+ * Ollama takes; the model has to be a vision one (llava, llama3.2-vision, ...)
+ * to make anything of them.
  * @param {string} prompt
  * @param {Array<{role: string, parts: Array<{text: string}>}>} history
  * @param {string} model
+ * @param {Array<{mimeType: string, data: string}>} [images] base64 image data
  * @returns {Promise<string|null>}
  */
-export async function chat(prompt, history = [], model) {
+export async function chat(prompt, history = [], model, images = []) {
   if (!model) {
     console.log("[ollama] no model set");
     return null;
   }
 
+  const messages = toChatMessages(history, prompt);
+  if (images?.length) {
+    messages[messages.length - 1].images = images.map((img) => img.data);
+  }
+
   const res = await request("/api/chat", {
     method: "POST",
-    body: { model, messages: toChatMessages(history, prompt), stream: false },
+    body: { model, messages, stream: false },
     timeout: CHAT_TIMEOUT_MS,
   });
 

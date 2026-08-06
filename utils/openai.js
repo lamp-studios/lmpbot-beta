@@ -82,13 +82,16 @@ export async function hasModel(name) {
 }
 
 /**
- * Send a prompt to an OpenAI model with optional prior history.
+ * Send a prompt to an OpenAI model with optional prior history and images.
+ * Images ride along on the newest user message as data URIs, which is what the
+ * Chat Completions API takes; the model has to be a vision one to use them.
  * @param {string} prompt
  * @param {Array<{role: string, parts: Array<{text: string}>}>} history
  * @param {string} model
+ * @param {Array<{mimeType: string, data: string}>} [images] base64 image data
  * @returns {Promise<string|null>}
  */
-export async function chat(prompt, history = [], model) {
+export async function chat(prompt, history = [], model, images = []) {
   if (!hasKey()) {
     console.log("[openai] OPENAI_API_KEY not set");
     return null;
@@ -98,9 +101,21 @@ export async function chat(prompt, history = [], model) {
     return null;
   }
 
+  const messages = toChatMessages(history, prompt);
+  if (images?.length) {
+    const last = messages[messages.length - 1];
+    last.content = [
+      { type: "text", text: last.content },
+      ...images.map(({ mimeType, data }) => ({
+        type: "image_url",
+        image_url: { url: `data:${mimeType};base64,${data}` },
+      })),
+    ];
+  }
+
   const res = await request("/chat/completions", {
     method: "POST",
-    body: { model, messages: toChatMessages(history, prompt) },
+    body: { model, messages },
     timeout: CHAT_TIMEOUT_MS,
   });
 

@@ -8,22 +8,25 @@ const genAI = config.geminiApiKey
   : null;
 
 /**
- * Send a prompt to Gemini with optional prior history.
+ * Send a prompt to Gemini with optional prior history and images.
  * @param {string} prompt
  * @param {Array<{role: string, parts: Array<{text: string}>}>} history
  * @param {string} [model] overrides the default model
+ * @param {Array<{mimeType: string, data: string}>} [images] base64 image data
  * @returns {Promise<string|null>}
  */
-export async function chat(prompt, history = [], model = DEFAULT_MODEL) {
+export async function chat(prompt, history = [], model = DEFAULT_MODEL, images = []) {
   if (!config.geminiApiKey || !genAI) {
     console.log("[gemini] GEMINI_API_KEY not set");
     return null;
   }
 
-  const contents = [
-    ...(history ?? []),
-    { role: "user", parts: [{ text: prompt }] },
-  ];
+  const parts = [{ text: prompt }];
+  for (const { mimeType, data } of images ?? []) {
+    parts.push({ inlineData: { mimeType, data } });
+  }
+
+  const contents = [...(history ?? []), { role: "user", parts }];
 
   try {
     const gModel = genAI.getGenerativeModel({ model: model || DEFAULT_MODEL });

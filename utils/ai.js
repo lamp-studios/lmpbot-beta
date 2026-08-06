@@ -84,15 +84,17 @@ export function label(provider, model) {
  * Send a prompt to whichever provider the guild is on.
  * `text` is null when the provider failed softly (see the bot logs); anything
  * worth telling the user about is thrown with a message they can act on.
+ * @param {Array<{mimeType: string, data: string}>} [images] base64 images to
+ *   attach to the prompt; whether they're understood is down to the model.
  * @returns {Promise<{text: string|null, provider: string, model: string|null, scope: string, label: string}>}
  */
-export async function chat(guildId, prompt, history = []) {
+export async function chat(guildId, prompt, history = [], images = []) {
   const { provider, model, scope } = await getSettings(guildId);
 
   let text;
-  if (provider === "ollama") text = await ollama.chat(prompt, history, model);
-  else if (provider === "openai") text = await openai.chat(prompt, history, model);
-  else text = await gemini.chat(prompt, history, model);
+  if (provider === "ollama") text = await ollama.chat(prompt, history, model, images);
+  else if (provider === "openai") text = await openai.chat(prompt, history, model, images);
+  else text = await gemini.chat(prompt, history, model, images);
 
   return { text, provider, model, scope, label: label(provider, model) };
 }

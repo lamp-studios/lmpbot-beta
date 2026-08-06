@@ -10,7 +10,7 @@ featuring moderation, verification, AI chat (Gemini, OpenAI or a local Ollama mo
 - **Welcome messages** - Mass welcome message sender with mention control (currently disabled)
 - **Anti-bot detection** - Auto-ban for messages posted in restricted channels
 - **Server lockdown** - Hide every channel from a role bar one, with an exact one-command undo
-- **AI chatbot** - Reply to messages in a designated channel, with per-user chat memory and remembered facts. Runs on Gemini, OpenAI or a local Ollama model, set globally or per server by the bot owner with `/setchatbotai`
+- **AI chatbot** - Reply to messages in a designated channel, with per-user chat memory and remembered facts. Reads posted images on vision-capable models, and resolves mentions to real usernames so it knows who is who. Runs on Gemini, OpenAI or a local Ollama model, set globally or per server by the bot owner with `/setchatbotai`
 - **Forum auto-staff** - Automatically add the server owner and a staff role to newly-created forum threads
 - **News broadcast** - Push announcements to every guild's configured news channel
 - **Uptime heartbeat** - Optional Uptime Kuma push and Prometheus Pushgateway metrics
@@ -169,7 +169,7 @@ If `SUPABASE_URL`/`SUPABASE_KEY` are unset, the Supabase tier is simply skipped.
 | `/members` | Everyone | Shows all verified members (ephemeral reply, mentions are not pinged) |
 | `/set_verification_role` | Admin | Sets the role granted on verification, and enables verification. Run it with no role to remove the role and disable verification again |
 | `/set_bot_channel` | Admin | Sets the "dont talk" channel (auto-ban on message) and an optional log channel. Run it with no options to turn both off |
-| `/set_chatbot_channel` | Admin | Sets a channel for AI chatbot replies |
+| `/set_chatbot_channel` | Admin | Sets a channel for AI chatbot replies, including posted images |
 | `/setchatbotai` | Owner | Picks the chatbot AI: `gemini`, `openai`, or `ollama` with a model name that is installed automatically. `scope` sets it for this server, globally for every server, or clears the server's own setting. Run it with no options to see the current one |
 | `/set_forum_channel` | Admin | Sets a forum channel + staff role for auto-add on new threads |
 | `/set_news_channel` | Admin | Sets the channel where bot news broadcasts are posted |
