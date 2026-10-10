@@ -13,7 +13,7 @@ export default {
   data: new SlashCommandBuilder()
     .setName("set_bot_channel")
     .setDescription("Set a channel to detect people as bots (required).")
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers)
     .addChannelOption((o) =>
       o
         .setName("channel")
