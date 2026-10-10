@@ -48,4 +48,9 @@ invites_detailed.json
 *.old
 
 # Legacy py-cord implementation (kept locally for reference)
-python-code/
+python-code/*
+
+
+lmpbot-beta.zip
+lmpbotbeta.zip
+

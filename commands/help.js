@@ -55,7 +55,7 @@ const COMMANDS = [
       "member role if that role is what grants View Channel, since a deny on `@everyone` " +
       "does nothing to people who have it.\n" +
       "Channels the role already couldn't see are left alone, and so is every other " +
-      "permission — only the View Channel bit is touched.\n" +
+      "permission; only the View Channel bit is touched.\n" +
       "What each channel looked like beforehand is saved, so `/undolockdown` puts it all " +
       "back exactly as it was. Running it again for a *different* role adds that role to " +
       "the same lockdown; a role that's already locked needs `/undolockdown` first.",
@@ -68,7 +68,7 @@ const COMMANDS = [
     short: "Lifts the lockdown and restores every channel.",
     long:
       "Restores the View Channel permission on every channel `/lockdown` changed, for " +
-      "every role it locked, back to whatever it was before — allowed, denied or unset. " +
+      "every role it locked, back to whatever it was before: allowed, denied or unset. " +
       "Channels that have been deleted since are skipped, and any the bot still can't " +
       "edit stay on record so running the command again finishes them off.",
   },
@@ -113,11 +113,46 @@ const COMMANDS = [
     type: "slash",
     usage: "/set_chatbot_channel <channel>",
     perm: "Admin",
-    short: "Sets a channel where the Gemini chatbot replies.",
+    short: "Sets a channel where the chatbot replies.",
     long:
-      "Every message in this channel gets a Gemini reply. The bot keeps a per-user " +
+      "Every message in this channel gets an AI reply. The bot keeps a per-user " +
       "history of the channel and remembers facts about you, like your name or what " +
-      "you're building, so it carries context between messages.",
+      "you're building, so it carries context between messages.\n" +
+      "Post an image and the AI looks at it, as long as the model can see images " +
+      "(Gemini, GPT-4o and Ollama vision models like `llava` can; plain text models " +
+      "can't). Up to 4 images a message, 5 MB each.\n" +
+      "Mentions are handed to the AI as `@username (display name, id)` so it knows who " +
+      "everyone is, and it can mention people back. It can only ping you and anyone " +
+      "you mentioned yourself.\n" +
+      "Which AI answers is set with `/setchatbotai`, and is Gemini until you change it.",
+  },
+  {
+    name: "setchatbotai",
+    type: "slash",
+    usage: "/setchatbotai [provider] [model] [scope]",
+    perm: "Owner",
+    short: "Picks which AI answers in the chatbot channel.",
+    long:
+      "Sets the chatbot AI. Only the bot owner can run it, including anyone on the " +
+      "bot's Discord developer team. Run it with no options to see what you're on.\n" +
+      "- `provider:gemini` uses Google's Gemini, and needs `GEMINI_API_KEY` set on the " +
+      "bot. `model` is optional and defaults to `gemini-2.5-flash`.\n" +
+      "- `provider:openai` needs `OPENAI_API_KEY`. `model` is required and is checked " +
+      "against what that key can actually use, e.g. `gpt-4o-mini`. Point " +
+      "`OPENAI_BASE_URL` at any OpenAI-compatible endpoint to use that instead.\n" +
+      "- `provider:ollama` uses a model running on the bot's own Ollama server, so " +
+      "nothing leaves the host and no API key is needed. `model` is required, e.g. " +
+      "`llama3` or `qwen2.5:7b`, anything from <https://ollama.com/library>. If that " +
+      "model isn't installed yet the bot downloads it for you and reports progress. " +
+      "Ollama itself has to be running; the bot uses `http://127.0.0.1:11434` unless " +
+      "`OLLAMA_HOST` says otherwise.\n\n" +
+      "`scope` decides how far the change reaches:\n" +
+      "- `server` (the default) changes this server only, and overrides the global one.\n" +
+      "- `global` sets the default every server without its own setting falls back to.\n" +
+      "- `clear` removes this server's setting so it follows the global default again.\n\n" +
+      "The `model` option autocompletes with the models the provider offers. Nothing is " +
+      "saved until the model is ready, so a failed download or a bad model name leaves " +
+      "the current AI alone.",
   },
   {
     name: "set_forum_channel",

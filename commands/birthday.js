@@ -32,7 +32,7 @@ function ephemeral(content) {
 
 /**
  * Payload for successful output: private only if the member asked for that.
- * Mentions are never resolved — a public settings summary would otherwise ping
+ * Mentions are never resolved, because a public settings summary would otherwise ping
  * every role it lists.
  */
 async function forMember(interaction, content) {
@@ -276,7 +276,7 @@ function renderUpcoming(entries, window) {
   let shown = 0;
 
   for (const entry of entries) {
-    const line = `- \`${entry.date}\` ${entry.mention} — ${when(entry.days)}`;
+    const line = `- \`${entry.date}\` ${entry.mention}: ${when(entry.days)}`;
     if (used + line.length + 1 > MAX_LEN) break;
     lines.push(line);
     used += line.length + 1;

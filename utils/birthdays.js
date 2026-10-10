@@ -61,7 +61,7 @@ export function calendarOrder(date) {
 /**
  * Whole days from today until "DD/MM" next comes round; 0 means today. 29/02
  * jumps to the next leap year instead of sliding onto 01/03, so it can be up to
- * eight years out — hence the bounded search rather than a single subtraction.
+ * eight years out, hence the bounded search rather than a single subtraction.
  */
 export function daysUntil(date, now = new Date()) {
   const [day, month] = date.split("/").map(Number);

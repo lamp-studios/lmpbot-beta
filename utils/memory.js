@@ -1,13 +1,5 @@
 // Chatbot memory helpers: fact extraction, message scoring, and building a
-// compressed Gemini history from stored chat rows.
-
-const IDENTITY_SKIP = new Set([
-  "going", "doing", "trying", "eating", "drinking", "playing",
-  "watching", "listening", "reading", "writing", "working",
-  "learning", "studying", "feeling", "getting", "making",
-  "looking", "thinking", "waiting", "coming", "leaving",
-  "building",
-]);
+// compressed chat history from stored rows.
 
 export function extractFacts(content) {
   const facts = {};
@@ -19,13 +11,7 @@ export function extractFacts(content) {
   if (m) facts.project = m[1].trim();
 
   m = content.match(/\bi am (?:a |an |the )?(\S[^.!?,\n]{2,49})/i);
-  if (m) {
-    const val = m[1].trim();
-    const first = val ? val.split(/\s+/)[0].toLowerCase() : "";
-    if (!IDENTITY_SKIP.has(first) && !first.endsWith("ing")) {
-      facts.identity = val;
-    }
-  }
+  if (m) facts.identity = m[1].trim();
 
   m = content.match(/\bi like\s+([^.!?,\n]{3,50})/i);
   if (m) facts.likes = m[1].trim();
@@ -112,6 +98,24 @@ export function buildSmartMemory(rows) {
   return selected
     .map(({ role, content }) => `${role === "user" ? "User" : "Bot"}: ${content}`)
     .join("\n\n");
+}
+
+/**
+ * History is passed around in the Gemini shape ({ role, parts: [{ text }] }),
+ * so every provider takes the same arguments. This converts it to the
+ * role/content messages that OpenAI-style APIs (and Ollama) expect, with the
+ * new prompt appended.
+ * @param {Array<{role: string, parts: Array<{text: string}>}>} history
+ * @param {string} prompt
+ * @returns {Array<{role: string, content: string}>}
+ */
+export function toChatMessages(history, prompt) {
+  const messages = (history ?? []).map(({ role, parts }) => ({
+    role: role === "model" ? "assistant" : role === "system" ? "system" : "user",
+    content: (parts ?? []).map((p) => p?.text ?? "").join("\n"),
+  }));
+  messages.push({ role: "user", content: prompt });
+  return messages;
 }
 
 export function formatUptime(seconds) {

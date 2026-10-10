@@ -41,7 +41,7 @@ export default {
     const mentions = interaction.options.getBoolean("mentions");
 
     // remote kill-switch: Top.gg mass-mention rules can disable this command.
-    // Fail closed — if the site doesn't reply, treat the command as disabled.
+    // Fail closed: if the site doesn't reply, treat the command as disabled.
     let disabled = true;
     try {
       const res = await fetch("https://api.uniqueweb.site/v2/botwelcome/status/disabled", {

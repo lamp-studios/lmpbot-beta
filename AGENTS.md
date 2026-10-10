@@ -4,19 +4,20 @@
 
 This is **lmpbot-beta**, a Discord bot built with [discord.js](https://discord.js.org) (v14+).
 The bot uses `mongoose` (MongoDB) for persistence, the `@google/generative-ai` SDK for the
-Gemini chatbot, and supports both prefix commands (`.`) and slash commands.
+Gemini chatbot (with OpenAI and local Ollama as alternatives, chosen globally or per
+guild), and supports both prefix commands (`.`) and slash commands.
 
 ## File Structure
 
 ```
 lmpbot-beta/
-├── index.js                    # Entry point — Client setup, intents, command/event loaders, mongo connect
+├── index.js                    # Entry point: Client setup, intents, command/event loaders, mongo connect
 ├── config.js                   # Env/config loader (reads .env via dotenv)
 ├── package.json                # Node dependencies + scripts
 ├── start.bat                   # Windows launcher (pnpm install && pnpm start)
 ├── setup-lmpbot.sh             # Raspberry Pi / Linux installer (systemd + auto-updater)
 ├── .env                        # Bot token, Gemini key, Mongo URI
-│                               # (DANGER_DONTSHARETOYKEN, GEMINI_API_KEY, MONGODB_URI)
+│                               # (DANGER_DONTSHARETOYKEN, GEMINI_API_KEY, OPENAI_API_KEY, OLLAMA_HOST, MONGODB_URI)
 │
 ├── commands/                   # Slash commands (auto-loaded; one command per file)
 │   ├── help.js                 # /help
@@ -26,6 +27,7 @@ lmpbot-beta/
 │   ├── members.js              # /members - show verified members
 │   ├── welcome.js              # /welcome - mass welcome sender
 │   ├── set_chatbot_channel.js  # /set_chatbot_channel
+│   ├── setchatbotai.js         # /setchatbotai - owner only; pick Gemini/OpenAI/Ollama, per guild or global
 │   ├── set_bot_channel.js      # /set_bot_channel
 │   ├── set_forum_channel.js    # /set_forum_channel
 │   ├── set_news_channel.js     # /set_news_channel
@@ -42,9 +44,15 @@ lmpbot-beta/
 │   ├── db.js                   # mongoose models + guild/member/fact/chat helpers
 │   ├── birthdays.js            # birthday config keys, date helpers, daily scheduler
 │   ├── lockdown.js             # lockdown state, apply/restore of @everyone View Channel
+│   ├── ai.js                   # chatbot provider router (server override -> global -> Gemini)
 │   ├── gemini.js               # Gemini chat helper (@google/generative-ai)
+│   ├── openai.js               # OpenAI chat helper, over the Chat Completions HTTP API
+│   ├── ollama.js               # Ollama chat helper + model install, over its HTTP API
+│   ├── owner.js                # bot owner ids (single owner or dev team) + isBotOwner()
 │   ├── memory.js               # fact extraction, message scoring, history compression, uptime
-│   └── deploy.js               # registerCommands() — global slash command sync (.up)
+│   ├── mentions.js             # rewrite <@id> as @username (display name, id) for the AI
+│   ├── attachments.js          # download image attachments as base64 for the AI
+│   └── deploy.js               # registerCommands(): global slash command sync (.up)
 │
 └── python-code/                # Legacy py-cord implementation (gitignored, do not touch)
 ```
@@ -80,6 +88,7 @@ No linting, testing, or build step configured. Manual testing via Discord.
 | `discord.js` >=14 | Core bot framework |
 | `mongoose` >=8 | MongoDB ODM for guild/member/fact/chat state |
 | `@google/generative-ai` | Gemini chatbot SDK |
+| *(none)* | OpenAI and Ollama are used over their HTTP APIs, no client libraries |
 | `dotenv` | Load `.env` into `process.env` |
 
 ## Code Style
@@ -139,15 +148,17 @@ dispatched off the configured prefix. Owner-only commands gate on
 
 ## Important Notes
 
-1. **No build step** — Node runs the source directly (`node index.js`).
-2. **Pure discord.js** — No ForgeScript, no Python. All logic is JavaScript.
+1. **No build step**: Node runs the source directly (`node index.js`).
+2. **Pure discord.js**: No ForgeScript, no Python. All logic is JavaScript.
 3. **Never commit** `.env` or token files.
-4. **Members intent** — Required for member iteration / role lookups; must be enabled in
+4. **Members intent**: Required for member iteration / role lookups; must be enabled in
    BOTH code AND the Discord Developer Portal.
-5. **Slash command registration** — `.up` calls `client.application.commands.set(...)` (see `utils/deploy.js`).
-6. **Owner IDs** — Resolved at startup in `events/ready.js` from `client.application` (team members or single owner).
-7. **Database** — MongoDB via `mongoose`; connection string comes from `MONGODB_URI`. Collections/indexes
+5. **Slash command registration**: `.up` calls `client.application.commands.set(...)` (see `utils/deploy.js`).
+6. **Owner IDs**: Resolved at startup by `utils/owner.js` from `client.application` (team members or single owner)
+   and cached on `client.ownerIds`. Owner-only slash commands gate on `isBotOwner(client, userId)`, which
+   re-resolves if that cache is empty.
+7. **Database**: MongoDB via `mongoose`; connection string comes from `MONGODB_URI`. Collections/indexes
    are created lazily by the models in `utils/db.js`. Discord snowflakes are stored as strings.
-8. **Legacy code** — The original py-cord implementation is preserved under `python-code/` and is
+8. **Legacy code**: The original py-cord implementation is preserved under `python-code/` and is
    gitignored. Do not modify it; the Node.js version at the repo root is the source of truth.
 ```
