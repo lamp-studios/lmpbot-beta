@@ -1,4 +1,4 @@
-# lmpbot-beta
+# LmpBot
 
 A Discord bot built with [Pycord](https://pycord.dev)
 featuring moderation, verification, AI chat (Gemini, OpenAI or a local Ollama model), and server management tools.
@@ -366,4 +366,4 @@ set the heartbeat loop never starts.
 
 ## License
 
-All rights reserved.
+Licensed under the [Apache License 2.0](./LICENSE).
