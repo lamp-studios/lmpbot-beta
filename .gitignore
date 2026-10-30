@@ -1,7 +1,10 @@
 # Dependencies
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+# left over from the Node.js version
 node_modules/
-.pnp/
-.pnp.js
 
 # Logs
 logs/
@@ -50,7 +53,11 @@ invites_detailed.json
 # Legacy py-cord implementation (kept locally for reference)
 python-code/*
 
+# Legacy discord.js implementation (kept locally for reference)
+node-code/
+
 
 lmpbot-beta.zip
 lmpbotbeta.zip
 
+.neon

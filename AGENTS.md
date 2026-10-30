@@ -2,163 +2,200 @@
 
 ## Project Overview
 
-This is **lmpbot-beta**, a Discord bot built with [discord.js](https://discord.js.org) (v14+).
-The bot uses `mongoose` (MongoDB) for persistence, the `@google/generative-ai` SDK for the
-Gemini chatbot (with OpenAI and local Ollama as alternatives, chosen globally or per
-guild), and supports both prefix commands (`.`) and slash commands.
+This is **lmpbot-beta**, a Discord bot built with [Pycord](https://pycord.dev) (`py-cord` 2.8+).
+Storage is a tiered fallback (MongoDB -> Supabase -> Neon -> Turso -> local SQLite), the chatbot runs on
+Gemini (`google-genai`), with OpenAI and a local Ollama server as alternatives chosen
+globally or per guild, and the bot supports both prefix commands (`.`) and slash commands.
 
 ## File Structure
 
 ```
 lmpbot-beta/
-├── index.js                    # Entry point: Client setup, intents, command/event loaders, mongo connect
-├── config.js                   # Env/config loader (reads .env via dotenv)
-├── package.json                # Node dependencies + scripts
-├── start.bat                   # Windows launcher (pnpm install && pnpm start)
-├── setup-lmpbot.sh             # Raspberry Pi / Linux installer (systemd + auto-updater)
-├── .env                        # Bot token, Gemini key, Mongo URI
-│                               # (DANGER_DONTSHARETOYKEN, GEMINI_API_KEY, OPENAI_API_KEY, OLLAMA_HOST, MONGODB_URI)
+├── main.py                     # Entry point: Bot setup, intents, extension loader, storage init
+├── config.py                   # Env/config loader (reads .env via python-dotenv)
+├── requirements.txt            # Python dependencies
+├── start.bat                   # Windows launcher (creates .venv, installs, runs)
+├── setup-lmpbot.sh             # Raspberry Pi / Linux installer (venv + systemd + auto-updater)
+├── supabase-schema.sql         # Tables for the Supabase fallback tier (Neon creates the same on start)
+├── neon.ts, package.json       # Neon infra config for `neon deploy` (Postgres only); the bot never runs it
+├── .env                        # Bot token, AI keys, storage URIs (never committed)
 │
-├── commands/                   # Slash commands (auto-loaded; one command per file)
-│   ├── help.js                 # /help
-│   ├── birthday.js             # /birthday - birthday announcements and roles
-│   ├── lockdown.js             # /lockdown - hide every channel bar one
-│   ├── undolockdown.js         # /undolockdown - restore what /lockdown changed
-│   ├── members.js              # /members - show verified members
-│   ├── welcome.js              # /welcome - mass welcome sender
-│   ├── set_chatbot_channel.js  # /set_chatbot_channel
-│   ├── setchatbotai.js         # /setchatbotai - owner only; pick Gemini/OpenAI/Ollama, per guild or global
-│   ├── set_bot_channel.js      # /set_bot_channel
-│   ├── set_forum_channel.js    # /set_forum_channel
-│   ├── set_news_channel.js     # /set_news_channel
-│   └── set_verification_role.js# /set_verification_role
+├── commands/                   # Slash commands (auto-loaded; one cog per file)
+│   ├── help.py                 # /help
+│   ├── birthday.py             # /birthday - birthday announcements and roles
+│   ├── lockdown.py             # /lockdown - hide every channel bar one
+│   ├── undolockdown.py         # /undolockdown - restore what /lockdown changed
+│   ├── members.py              # /members - show verified members
+│   ├── welcome.py              # /welcome - mass welcome sender
+│   ├── delete_data.py          # /delete_data - owner only; wipe one user's stored data
+│   ├── set_chatbot_channel.py  # /set_chatbot_channel
+│   ├── setchatbotai.py         # /setchatbotai - owner only; pick Gemini/OpenAI/Ollama, per guild or global
+│   ├── set_bot_channel.py      # /set_bot_channel
+│   ├── set_forum_channel.py    # /set_forum_channel
+│   ├── set_news_channel.py     # /set_news_channel
+│   └── set_verification_role.py# /set_verification_role
 │
-├── events/                     # discord.js event handlers (auto-loaded)
-│   ├── ready.js                # ClientReady - startup log, owner resolution, status loop
-│   ├── messageCreate.js        # prefix commands, dont_talk auto-ban, chatbot replies
-│   ├── interactionCreate.js    # slash command routing + button handling
-│   ├── guildCreate.js          # guild join log
-│   └── threadCreate.js         # Forum channel: auto-add staff to new threads
+├── events/                     # Event listeners (auto-loaded; one cog per file)
+│   ├── ready.py                # on_ready - startup log, owner resolution, command sync, status loop
+│   ├── message_create.py       # on_message - prefix commands, dont_talk auto-ban, chatbot replies
+│   ├── interaction_create.py   # slash command error replies + "learnmore" button
+│   ├── guild_create.py         # on_guild_join log
+│   └── thread_create.py        # Forum channel: auto-add staff to new threads
 │
 ├── utils/
-│   ├── db.js                   # mongoose models + guild/member/fact/chat helpers
-│   ├── birthdays.js            # birthday config keys, date helpers, daily scheduler
-│   ├── lockdown.js             # lockdown state, apply/restore of @everyone View Channel
-│   ├── ai.js                   # chatbot provider router (server override -> global -> Gemini)
-│   ├── gemini.js               # Gemini chat helper (@google/generative-ai)
-│   ├── openai.js               # OpenAI chat helper, over the Chat Completions HTTP API
-│   ├── ollama.js               # Ollama chat helper + model install, over its HTTP API
-│   ├── owner.js                # bot owner ids (single owner or dev team) + isBotOwner()
-│   ├── memory.js               # fact extraction, message scoring, history compression, uptime
-│   ├── mentions.js             # rewrite <@id> as @username (display name, id) for the AI
-│   ├── attachments.js          # download image attachments as base64 for the AI
-│   └── deploy.js               # registerCommands(): global slash command sync (.up)
+│   ├── db.py                   # storage router + guild/member/fact/chat helpers
+│   ├── backends/               # mongo.py, supabase.py, neon.py, turso.py, sqlite.py (+ timestamps.py)
+│   ├── birthdays.py            # birthday config keys, date helpers, daily scheduler
+│   ├── lockdown.py             # lockdown state, apply/restore of a role's View Channel
+│   ├── ai.py                   # chatbot provider router (server override -> global -> Gemini)
+│   ├── gemini.py               # Gemini chat helper (google-genai, async)
+│   ├── openai.py               # OpenAI chat helper, over the Chat Completions HTTP API
+│   ├── ollama.py               # Ollama chat helper + model install, over its HTTP API
+│   ├── owner.py                # bot owner ids (single owner or dev team)
+│   ├── memory.py               # fact extraction, message scoring, history compression, uptime
+│   ├── mentions.py             # rewrite <@id> as @username (display name, id) for the AI
+│   ├── attachments.py          # download image attachments as base64 for the AI
+│   ├── heartbeat.py            # optional Uptime Kuma / Pushgateway heartbeat
+│   └── deploy.py               # register_commands(): global slash command sync (.up)
 │
-└── python-code/                # Legacy py-cord implementation (gitignored, do not touch)
+├── node-code/                  # Previous discord.js implementation (gitignored, do not touch)
+└── python-code/                # Original py-cord implementation (gitignored, do not touch)
 ```
 
 ## Build/Run Commands
 
 ```bash
-pnpm install         # Install dependencies
-pnpm start           # Start the bot (node index.js)
-pnpm dev             # Start with auto-reload (node --watch index.js)
-start.bat            # Windows convenience launcher
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt   # Install dependencies
+.venv/bin/python main.py                    # Start the bot
+start.bat                                   # Windows convenience launcher
 ```
 
-No linting, testing, or build step configured. Manual testing via Discord.
+No linting, testing, or build step configured. Manual testing via Discord. CI
+(`.github/workflows/verify.yml`) byte-compiles everything and loads every extension on
+Python 3.10, 3.11 and 3.13.
 
-## Bot Configuration (index.js)
+## Bot Configuration (main.py)
 
-**Intents:**
-`Guilds`, `GuildMessages`, `GuildMembers`, `MessageContent`.
+**Intents:** `guilds`, `guild_messages`, `members`, `message_content` (everything else off).
 
-**Prefix:** `.` (defined in `config.js`)
+**Prefix:** `.` (defined in `config.py`)
 
-**Module loading:**
-`index.js` reads every `.js` file in `commands/` and `events/`:
-- `commands/` modules must `export default { data, execute }` (a `SlashCommandBuilder` + handler)
-- `events/` modules must `export default { name, once?, execute }` (a discord.js event name + handler)
-- Event handlers receive the normal event args plus `client` as the final argument.
+**Bot class:** `LmpBot`, a `discord.Bot` subclass whose `start()` runs `init_storage()`
+before connecting. It is a plain `discord.Bot`, not `commands.Bot`: prefix commands are
+parsed by hand in `events/message_create.py`, after the dont_talk and chatbot checks.
+
+**Module loading:** `main.py` loads every non-underscore module in `commands/` and
+`events/` with `bot.load_extension()`. Each module defines a `commands.Cog` and a
+`setup(bot)` that adds it.
+
+**Command sync:** `auto_sync_commands` is off. `events/ready.py` bulk-syncs every command
+globally once on startup, and `.up` does the same on demand (`utils/deploy.py`).
 
 ## Dependencies
 
 | Package | Purpose |
 |---------|---------|
-| `discord.js` >=14 | Core bot framework |
-| `mongoose` >=8 | MongoDB ODM for guild/member/fact/chat state |
-| `@google/generative-ai` | Gemini chatbot SDK |
-| *(none)* | OpenAI and Ollama are used over their HTTP APIs, no client libraries |
-| `dotenv` | Load `.env` into `process.env` |
+| `py-cord` >=2.8.1,<3 | Core bot framework (needs Python 3.10+) |
+| `aiohttp` | HTTP for OpenAI, Ollama, attachments, heartbeat, /welcome kill switch |
+| `pymongo` >=4.13 | MongoDB, async API (`AsyncMongoClient`) |
+| `asyncpg` | Neon Postgres tier (pooled URL, statement cache off) |
+| `supabase` | Supabase fallback tier (async client) |
+| `google-genai` | Gemini chatbot SDK |
+| `python-dotenv` | Load `.env` into the environment |
+
+OpenAI, Ollama and Turso are used over their HTTP APIs, with no client libraries.
 
 ## Code Style
 
-- **Language:** Modern JavaScript (ESM, `"type": "module"`)
-- **Indentation:** 2 spaces
+- **Language:** Python 3.10+, `async`/`await` throughout
+- **Indentation:** 4 spaces
 - **Quotes:** Double quotes
-- **File naming:** `camelCase.js` for events, `snake_case.js` for slash command files (name matches the command)
-- **Variables / functions:** `camelCase`
+- **File naming:** `snake_case.py`; slash command files are named after the command
+- **Variables / functions:** `snake_case`
 - **Constants:** `UPPER_SNAKE_CASE`
-- **Classes / models:** `PascalCase`
+- **Classes / cogs:** `PascalCase`
 
 ## Command Structures
 
 ### Slash Command (`commands/`)
-```js
-import { SlashCommandBuilder, MessageFlags } from "discord.js";
+```python
+import discord
+from discord.ext import commands
 
-export default {
-  data: new SlashCommandBuilder()
-    .setName("example")
-    .setDescription("What it does.")
-    .addStringOption((o) => o.setName("option").setDescription("Option description.").setRequired(true)),
 
-  async execute(interaction) {
-    const option = interaction.options.getString("option");
-    await interaction.reply({ content: `got: ${option}`, flags: MessageFlags.Ephemeral });
-  },
-};
+class Example(commands.Cog):
+    def __init__(self, bot: discord.Bot):
+        self.bot = bot
+
+    @discord.slash_command(name="example", description="What it does.")
+    async def example(
+        self,
+        ctx: discord.ApplicationContext,
+        option: discord.Option(str, description="Option description.", required=True),
+    ):
+        await ctx.respond(f"got: {option}", ephemeral=True)
+
+
+def setup(bot: discord.Bot):
+    bot.add_cog(Example(bot))
 ```
 
-### Event handler (`events/`)
-```js
-import { Events } from "discord.js";
+### Event listener (`events/`)
+```python
+import discord
+from discord.ext import commands
 
-export default {
-  name: Events.SomeEvent,
-  // once: true,   // optional
-  async execute(/* ...args, client */) {
-    // ...
-  },
-};
+
+class SomeEvent(commands.Cog):
+    def __init__(self, bot: discord.Bot):
+        self.bot = bot
+
+    @commands.Cog.listener()
+    async def on_some_event(self, *args):
+        ...
+
+
+def setup(bot: discord.Bot):
+    bot.add_cog(SomeEvent(bot))
 ```
+
+Never override `on_interaction` or `on_connect` on the bot itself: py-cord dispatches
+commands and syncs from those. A `Cog.listener()` runs alongside them and is fine.
 
 ### Prefix command
-Prefix commands live inside `events/messageCreate.js` as `else if (cmd === "...")` branches
+Prefix commands live inside `events/message_create.py` as `elif cmd == "...":` branches
 dispatched off the configured prefix. Owner-only commands gate on
-`message.client.ownerIds.has(message.author.id)`.
+`is_owner_cached(bot, message.author.id)`.
 
 ## Adding New Commands
 
-1. **Slash command:** Create `commands/your_command.js` with a default `{ data, execute }` export.
-2. **Event handler:** Create `events/yourEvent.js` with a default `{ name, execute }` export.
-3. **Prefix command:** Add an `else if (cmd === "yourcmd")` branch inside `events/messageCreate.js`.
-4. Modules auto-load on bot startup via the loaders in `index.js`.
-5. After adding/changing slash commands, run `.up` in Discord (owner only) to sync them globally.
+1. **Slash command:** Create `commands/your_command.py` with a cog and `setup(bot)`.
+2. **Event listener:** Create `events/your_event.py` with a cog and `setup(bot)`.
+3. **Prefix command:** Add an `elif cmd == "yourcmd":` branch inside `events/message_create.py`.
+4. Modules auto-load on bot startup via `load_dir()` in `main.py`.
+5. Slash commands sync on startup; run `.up` in Discord (owner only) to re-sync without a restart.
 
 ## Important Notes
 
-1. **No build step**: Node runs the source directly (`node index.js`).
-2. **Pure discord.js**: No ForgeScript, no Python. All logic is JavaScript.
+1. **No build step**: Python runs the source directly (`python main.py`).
+2. **Pure py-cord**: No ForgeScript, no Node.js. All logic is Python.
 3. **Never commit** `.env` or token files.
 4. **Members intent**: Required for member iteration / role lookups; must be enabled in
-   BOTH code AND the Discord Developer Portal.
-5. **Slash command registration**: `.up` calls `client.application.commands.set(...)` (see `utils/deploy.js`).
-6. **Owner IDs**: Resolved at startup by `utils/owner.js` from `client.application` (team members or single owner)
-   and cached on `client.ownerIds`. Owner-only slash commands gate on `isBotOwner(client, userId)`, which
-   re-resolves if that cache is empty.
-7. **Database**: MongoDB via `mongoose`; connection string comes from `MONGODB_URI`. Collections/indexes
-   are created lazily by the models in `utils/db.js`. Discord snowflakes are stored as strings.
-8. **Legacy code**: The original py-cord implementation is preserved under `python-code/` and is
-   gitignored. Do not modify it; the Node.js version at the repo root is the source of truth.
-```
+   BOTH code AND the Discord Developer Portal. Message Content intent likewise.
+5. **Stored values are strings.** Discord ids are stored as strings and come back as
+   strings, so compare with `str(channel.id) == stored`, and turn them back into ints
+   (`utils.birthdays.snowflake()`) before `guild.get_role()` / `get_channel()`. Booleans are
+   stored as `"true"`/`"false"` (the db helpers convert Python `bool` for you).
+6. **Owner IDs**: Resolved at startup by `utils/owner.py` from `bot.application_info()`
+   (every team member, or the single owner) and cached on `bot.owner_ids`. Owner-only
+   slash commands gate on `await is_bot_owner(bot, user_id)`, which re-resolves if that
+   cache is empty.
+7. **Database compatibility**: table, collection and field names are the ones the
+   previous Node.js version used (Mongo collections `guildvars`, `membervars`,
+   `userfacts`, `chatmemories` with camelCase fields; SQL tables `guild_vars`,
+   `member_vars`, `user_facts`, `chat_memory`, also used by Turso; timestamps written as JavaScript-style ISO
+   strings). Don't rename them, or existing data disappears.
+8. **Legacy code**: `node-code/` (the discord.js version) and `python-code/` (the original
+   py-cord version) are kept locally for reference and are gitignored. Do not modify them;
+   the Python code at the repo root is the source of truth.

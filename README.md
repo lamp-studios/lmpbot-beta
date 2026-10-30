@@ -1,6 +1,6 @@
 # lmpbot-beta
 
-A Discord bot built with [Discord.JS](https://discord.js.org)
+A Discord bot built with [Pycord](https://pycord.dev)
 featuring moderation, verification, AI chat (Gemini, OpenAI or a local Ollama model), and server management tools.
 
 ## Features
@@ -20,7 +20,7 @@ featuring moderation, verification, AI chat (Gemini, OpenAI or a local Ollama mo
 
 ### Prerequisites
 
-- [NodeJS](https://nodejs.org) v24+
+- [Python](https://www.python.org) 3.10+ (py-cord 2.8 does not run on anything older)
 - A [Discord bot application](https://discord.com/developers/applications) with the following privileged intents enabled:
   - Server Members Intent
   - Message Content Intent
@@ -30,7 +30,8 @@ featuring moderation, verification, AI chat (Gemini, OpenAI or a local Ollama mo
 ```bash
 git clone https://github.com/lamp-studios/lmpbot-beta.git
 cd lmpbot-beta
-pnpm install
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt    # Windows: .venv\Scripts\pip install -r requirements.txt
 ```
 
 ### Configuration
@@ -53,13 +54,18 @@ OPENAI_BASE_URL=https://api.openai.com/v1
 # so you only need this if Ollama runs somewhere else.
 OLLAMA_HOST=http://127.0.0.1:11434
 
-# Storage (see "Database Setup" below). All three are optional; the bot falls
-# back Mongo -> Supabase -> local SQLite, so with none set it still runs on SQLite.
+# Storage (see "Database Setup" below). All optional; the bot falls back
+# Mongo -> Supabase -> Neon -> Turso -> local SQLite, so with none set it still runs on SQLite.
 MONGODB_URI=your_mongodb_connection_string
 SUPABASE_URL=your_supabase_project_url
 SUPABASE_KEY=your_supabase_service_role_key
+DATABASE_URL=your_neon_pooled_connection_string
+DATABASE_URL_UNPOOLED=your_neon_direct_connection_string
+TURSO_DATABASE_URL=libsql://your-db-your-org.turso.io
+TURSO_AUTH_TOKEN=your_turso_database_token
 
 # Optional monitoring (see "Monitoring" below). Both are skipped if unset.
+# A key left blank (KEY=) counts as unset everywhere.
 KUMA_PUSH_URL=your_uptime_kuma_push_url
 PUSHGATEWAY_URL=your_prometheus_pushgateway_url
 ```
@@ -67,12 +73,14 @@ PUSHGATEWAY_URL=your_prometheus_pushgateway_url
 ### Running
 
 ```bash
-node index.js
+.venv/bin/python main.py
 ```
 
-On Windows you can also just double-click `start.bat`.
+On Windows you can also just double-click `start.bat`, which creates the venv
+and installs the requirements on first run.
 
-After the bot is online, run `.up` in Discord (owner only) to register slash commands.
+Slash commands are synced to Discord every time the bot starts. Run `.up` in
+Discord (owner only) to force a re-sync without restarting.
 
 ### Raspberry Pi / Linux Auto-Deploy
 
@@ -83,11 +91,16 @@ chmod +x setup-lmpbot.sh && sudo ./setup-lmpbot.sh
 ```
 
 This will:
-- Install Node.js and enable pnpm (via corepack)
-- Clone the repo and install dependencies with `pnpm install`
-- Prompt for your bot token and create `.env` (bot token, Gemini key, Mongo URI)
+- Install Python 3 and `venv` (or a uv-managed Python 3.12 if the system one is older than 3.10)
+- Clone the repo into `~/lmpbot-beta` and install `requirements.txt` into `~/lmpbot-beta/.venv`
+- Prompt for your bot token and create `.env`, or add any missing keys to an existing one
 - Set up a systemd service (auto-start on boot)
-- Set up an auto-updater that checks for new commits every 5 minutes
+- Set up an auto-updater that checks for new commits every 5 minutes and reinstalls requirements
+
+It is safe to re-run, and re-running it is also how an old Node.js install is
+migrated: it stops the bot, swaps the code over, deletes `node_modules/` and
+keeps `.env` and `database/` as they are. A 64-bit Raspberry Pi OS is
+recommended, since some dependencies have no prebuilt 32-bit ARM wheels.
 
 ## Database Setup
 
@@ -96,7 +109,7 @@ priority order and falls through to the next backend on failure (e.g. MongoDB
 running out of storage, or Supabase erroring):
 
 ```
-MongoDB  ->  Supabase  ->  SQLite (local file)
+MongoDB  ->  Supabase  ->  Neon  ->  Turso  ->  SQLite (local file)
 ```
 
 You can configure **any subset** of these:
@@ -108,8 +121,8 @@ You can configure **any subset** of these:
 - SQLite is **always** the last-resort fallback, so your data is never lost even
   if the remote databases are down.
 
-> **Note:** the SQLite fallback uses Node's built-in `node:sqlite`, which
-> requires **Node ≥ 22.5** (the recommended v24+ covers this).
+> **Note:** the SQLite fallback uses Python's built-in `sqlite3` module and
+> lives in `database/fallback.db`.
 
 ### MongoDB (primary)
 
@@ -127,8 +140,11 @@ Using a free [MongoDB Atlas](https://www.mongodb.com/atlas) cluster:
 5. Replace `<user>`/`<password>`, add a database name (e.g. `/lmpbot`), and put
    it in `.env` as `MONGODB_URI`.
 
-Collections and indexes are created automatically on first write, so there is no
-manual schema step needed.
+Collections and indexes are created automatically on first start, so there is no
+manual schema step needed. The collection names (`guildvars`, `membervars`,
+`userfacts`, `chatmemories`) are the ones the earlier Node.js version created, so
+an existing database carries straight over. If the URI names no database, `test`
+is used, again matching the earlier version.
 
 ### Supabase (fallback)
 
@@ -148,6 +164,41 @@ Using a free [Supabase](https://supabase.com) project:
 > commit it or expose it client-side.
 
 If `SUPABASE_URL`/`SUPABASE_KEY` are unset, the Supabase tier is simply skipped.
+
+### Neon (fallback)
+
+Using a free [Neon](https://neon.com) project (Lakebase Postgres):
+
+1. Create a project, then link this folder to it with the Neon CLI
+   (`npm i -g neon`, `neon login`, `neon link`). That writes `DATABASE_URL` and
+   `DATABASE_URL_UNPOOLED` into `.env`. Copying both connection strings from the
+   dashboard's **Connect** dialog works too.
+2. That's it: the tables are created on first start over the direct
+   (`DATABASE_URL_UNPOOLED`) connection, and normal traffic goes through the pooled
+   `DATABASE_URL`. The schema is the same as [`supabase-schema.sql`](supabase-schema.sql).
+
+The bot uses [asyncpg](https://github.com/MagicStack/asyncpg) with its statement
+cache off, as Neon's pooler (PgBouncer, transaction mode) requires. Idle Neon
+computes suspend after a few minutes; the first query afterwards takes a moment
+longer. If `DATABASE_URL` is unset, the Neon tier is skipped.
+
+`neon.ts` and `package.json` are Neon's infrastructure config for `neon deploy`
+(it only comes in TypeScript). It declares Postgres only, and the bot itself never
+runs it.
+
+### Turso (fallback)
+
+Using a free [Turso](https://turso.tech) database (hosted libSQL, i.e. SQLite):
+
+1. Create a database in the Turso dashboard, or with the CLI:
+   `turso db create lmpbot`.
+2. Copy its URL (`libsql://<db>-<org>.turso.io`) → `.env` as `TURSO_DATABASE_URL`.
+3. Create a read/write token for it (`turso db tokens create lmpbot`) → `.env` as
+   `TURSO_AUTH_TOKEN`.
+
+The tables are created automatically on first start, with the same schema as the
+local SQLite file. The bot talks to Turso over its HTTP API, so there is no extra
+dependency to install. If either variable is unset, the Turso tier is skipped.
 
 ## Commands
 
@@ -171,6 +222,7 @@ If `SUPABASE_URL`/`SUPABASE_KEY` are unset, the Supabase tier is simply skipped.
 | `/set_bot_channel` | Admin | Sets the "dont talk" channel (auto-ban on message) and an optional log channel. Run it with no options to turn both off |
 | `/set_chatbot_channel` | Admin | Sets a channel for AI chatbot replies, including posted images |
 | `/setchatbotai` | Owner | Picks the chatbot AI: `gemini`, `openai`, or `ollama` with a model name that is installed automatically. `scope` sets it for this server, globally for every server, or clears the server's own setting. Run it with no options to see the current one |
+| `/delete_data` | Owner | Deletes a user's chat memory, remembered facts and member settings (birthday, verification) from every server and every database, after a Confirm / Cancel prompt. Takes a username, mention or user id |
 | `/set_forum_channel` | Admin | Sets a forum channel + staff role for auto-add on new threads |
 | `/set_news_channel` | Admin | Sets the channel where bot news broadcasts are posted |
 
@@ -179,7 +231,7 @@ If `SUPABASE_URL`/`SUPABASE_KEY` are unset, the Supabase tier is simply skipped.
 | Command | Permission | Description |
 |---------|-----------|-------------|
 | `.up` | Owner | Registers/updates slash commands |
-| `.exe` | Owner | Evaluates JavaScript code |
+| `.exe` | Owner | Runs Python code (`bot`, `client`, `message`, `discord` in scope) |
 | `.send_new` | Owner | Broadcasts a message to every guild's news channel |
 | `.ping` | Everyone | Ping the bot |
 | `.info` | Everyone | Show bot info (ping, OS, etc.) |
@@ -301,14 +353,16 @@ set the heartbeat loop never starts.
 
 ## Tech Stack
 
-- [discord.js](https://discord.js.org) - Discord bot framework
-- [mongoose](https://mongoosejs.com) - MongoDB ODM (primary storage)
-- [@supabase/supabase-js](https://github.com/supabase/supabase-js) - Supabase client (fallback storage)
-- [node:sqlite](https://nodejs.org/api/sqlite.html) - built-in SQLite (last-resort local storage)
-- [@google/generative-ai](https://www.npmjs.com/package/@google/generative-ai) - Gemini chatbot SDK
-- [OpenAI](https://platform.openai.com/docs/api-reference/chat) - optional chatbot models, over the Chat Completions HTTP API (no extra dependency)
-- [Ollama](https://ollama.com) - optional local chatbot models, over its HTTP API (no extra dependency)
-- [dotenv](https://github.com/motdotla/dotenv) - Environment variable loading
+- [Pycord](https://pycord.dev) - Discord bot framework (`py-cord`)
+- [PyMongo](https://pymongo.readthedocs.io) - MongoDB driver, async API (primary storage)
+- [supabase-py](https://github.com/supabase/supabase-py) - Supabase client (fallback storage)
+- [asyncpg](https://github.com/MagicStack/asyncpg) - Postgres driver for the Neon tier
+- [Turso](https://docs.turso.tech/sdk/http/reference) - hosted libSQL (fallback storage), over its HTTP API with aiohttp (no extra dependency)
+- [sqlite3](https://docs.python.org/3/library/sqlite3.html) - built-in SQLite (last-resort local storage)
+- [google-genai](https://pypi.org/project/google-genai/) - Gemini chatbot SDK
+- [OpenAI](https://platform.openai.com/docs/api-reference/chat) - optional chatbot models, over the Chat Completions HTTP API with aiohttp (no extra dependency)
+- [Ollama](https://ollama.com) - optional local chatbot models, over its HTTP API with aiohttp (no extra dependency)
+- [python-dotenv](https://github.com/theskumar/python-dotenv) - Environment variable loading
 
 ## License
 
