@@ -36,7 +36,7 @@ python3 -m venv .venv
 
 ### Configuration
 
-Create a `.env` file in the project root:
+Create a `.env` file in the project root (or copy [`.env.example`](.env.example)):
 
 ```env
 # Required
@@ -68,6 +68,10 @@ TURSO_AUTH_TOKEN=your_turso_database_token
 # A key left blank (KEY=) counts as unset everywhere.
 KUMA_PUSH_URL=your_uptime_kuma_push_url
 PUSHGATEWAY_URL=your_prometheus_pushgateway_url
+
+# Optional dashboard HTTP API (see "Dashboard API" below). Off unless BOT_API_KEY is set.
+BOT_API_KEY=a_long_random_secret
+BOT_API_PORT=8080
 ```
 
 ### Running
@@ -350,6 +354,51 @@ under the job name `lmpbot`.
 
 The two are independent, so you can enable either, both or neither. With neither
 set the heartbeat loop never starts.
+
+## Dashboard API
+
+The bot runs a small JSON HTTP API in its own process, so an external web
+dashboard can ask about the bot's state. It answers from the bot's in-memory
+cache and never calls Discord's REST API.
+
+| Variable | Default | What it does |
+|----------|---------|--------------|
+| `BOT_API_KEY` | (unset) | Shared secret the dashboard sends. With no key the API does not start, and the bot runs as normal |
+| `BOT_API_PORT` | `8080` | Preferred port. The server binds to `0.0.0.0` |
+
+Generate a key with `python3 -c "import secrets; print(secrets.token_urlsafe(32))"`.
+
+If the preferred port is taken, the server tries the next 19 ports up, then lets
+the OS pick any free one. The port it ends up on is logged and written to
+`database/api-port`, so a tunnel or reverse proxy can read it from there. If the
+server still cannot start, the error is logged and the bot keeps running without it.
+
+Every route except `GET /health` needs `Authorization: Bearer <BOT_API_KEY>`;
+a missing or wrong key gets `401 {"error": "Unauthorized"}`. Request bodies are
+capped at 64 KB, unknown routes return `404` and wrong methods `405`, all as
+JSON. Neither the key nor request headers are ever logged.
+
+| Route | Auth | Description |
+|-------|------|-------------|
+| `GET /health` | No | `{"ok": true, "ready": <bool>}`, where `ready` is whether the gateway connection is ready |
+| `POST /guilds/check` | Yes | Body `{"guildIds": ["123...", ...]}` (at most 500 snowflake strings). Returns `{"guildIds": [...]}`, the ones the bot is in. `503` until the bot is ready |
+
+```bash
+curl -X POST https://bot.example.com/guilds/check \
+  -H "Authorization: Bearer $BOT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"guildIds": ["123456789012345678"]}'
+```
+
+> ⚠️ The API itself speaks plain HTTP. In production, expose it **only over
+> HTTPS**, through a reverse proxy (Caddy, nginx) or a tunnel (Cloudflare Tunnel,
+> Tailscale Funnel), and don't open the raw port to the internet, or the key
+> travels in clear text.
+
+Routes live in `api/routes/`, separate from the server setup in `api/server.py`.
+To add one, put a handler in a module there and list its `routes` table in
+`api/routes/__init__.py`. Routes require the key by default; only handlers
+decorated with `@public` skip it.
 
 ## Tech Stack
 

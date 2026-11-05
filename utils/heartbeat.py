@@ -68,7 +68,7 @@ async def _push(bot, session: aiohttp.ClientSession):
             async with session.post(url, data=body) as res:
                 print(f"[heartbeat] pushgateway -> HTTP {res.status}")
         except Exception as err:
-            print(f"[heartbeat] pushgateway push failed: {err!r}")
+            pass
 
 
 async def _loop(bot):

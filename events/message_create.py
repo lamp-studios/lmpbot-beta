@@ -166,7 +166,7 @@ class MessageCreate(commands.Cog):
             from utils.deploy import register_commands
 
             await register_commands(bot)
-            await message.add_reaction("\N{THUMBS UP SIGN}\N{EMOJI MODIFIER FITZPATRICK TYPE-1-2}")
+            await message.add_reaction("👍")
 
         elif cmd == "exe":
             if not is_owner_cached(bot, message.author.id):

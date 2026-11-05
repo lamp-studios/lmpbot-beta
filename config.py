@@ -26,6 +26,8 @@ class Config:
     turso_auth_token = _env("TURSO_AUTH_TOKEN")
     kuma_push_url = _env("KUMA_PUSH_URL")
     pushgateway_url = _env("PUSHGATEWAY_URL")
+    bot_api_key = _env("BOT_API_KEY")
+    bot_api_port = _env("BOT_API_PORT")
     prefix = "."
 
 

@@ -17,6 +17,7 @@ pnpm-debug.log*
 # Environment & secrets
 .env
 .env.*
+!.env.example
 discord_token.txt
 proxies.txt
 
@@ -61,3 +62,6 @@ lmpbot-beta.zip
 lmpbotbeta.zip
 
 .neon
+
+# Local Claude Code prompts
+PROMPT.md

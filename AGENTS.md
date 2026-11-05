@@ -19,6 +19,16 @@ lmpbot-beta/
 ├── supabase-schema.sql         # Tables for the Supabase fallback tier (Neon creates the same on start)
 ├── neon.ts, package.json       # Neon infra config for `neon deploy` (Postgres only); the bot never runs it
 ├── .env                        # Bot token, AI keys, storage URIs (never committed)
+├── .env.example                # Every supported env key, blank
+│
+├── api/                        # Dashboard HTTP API (aiohttp.web), started from LmpBot.start()
+│   ├── server.py               # start_api()/stop_api(): app, middlewares, bind on BOT_API_PORT
+│   ├── middleware.py           # Bearer-key auth (constant-time), JSON errors, @public marker
+│   ├── keys.py                 # typed app keys (BOT, API_KEY)
+│   ├── responses.py            # json_error()
+│   └── routes/                 # one module per route group; register in routes/__init__.py
+│       ├── health.py           # GET /health (public)
+│       └── guilds.py           # POST /guilds/check
 │
 ├── commands/                   # Slash commands (auto-loaded; one cog per file)
 │   ├── help.py                 # /help

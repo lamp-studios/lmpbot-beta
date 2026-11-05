@@ -44,7 +44,7 @@ class Ready(commands.Cog):
             return
         self.started = True
 
-        print("ready")
+        print(f"Ready {self.bot.application_id}.")
 
         # resolve owner id(s) from the application (team members or single owner)
         await resolve_owner_ids(self.bot)

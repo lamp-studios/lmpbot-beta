@@ -5,6 +5,7 @@ from pathlib import Path
 
 import discord
 
+from api import start_api, stop_api
 from config import config
 from utils.db import init_storage
 
@@ -13,10 +14,17 @@ ROOT = Path(__file__).resolve().parent
 
 class LmpBot(discord.Bot):
     async def start(self, token: str, *, reconnect: bool = True) -> None:
+        # the dashboard API binds first (a quick local socket bind that logs and
+        # carries on if it fails), so /health answers while the bot is starting
+        await start_api(self)
         # storage comes up before the gateway connects, so no event can arrive
         # while the database is still unavailable
         await init_storage()
         await super().start(token, reconnect=reconnect)
+
+    async def close(self) -> None:
+        await stop_api()
+        await super().close()
 
 
 intents = discord.Intents.none()
