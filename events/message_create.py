@@ -275,12 +275,19 @@ class MessageCreate(commands.Cog):
         try:
             result = await ai.chat(guild_id, prompt, history, images)
         except Exception as err:
-            await loading.edit(content=f"Chatbot failed. {str(err)[:1900]}")
+            # provider errors can carry internal hosts (OLLAMA_HOST, OPENAI_BASE_URL)
+            # and raw upstream bodies, so the details go to the log, not the channel
+            print(f"[chatbot] guild {guild_id}: provider error:")
+            traceback.print_exception(type(err), err, err.__traceback__)
+            await loading.edit(
+                content="Chatbot failed. The bot owner can find the details in the bot logs.",
+                allowed_mentions=discord.AllowedMentions.none(),
+            )
             return
 
         reply = result["text"]
         if reply is None:
-            await loading.edit(content=f"{result['label']} failed.")
+            await loading.edit(content=f"{result['label']} failed.", allowed_mentions=discord.AllowedMentions.none())
             return
 
         # SAVE BOT RESPONSE (still sent below even if the user was wiped meanwhile)

@@ -71,6 +71,7 @@ PUSHGATEWAY_URL=your_prometheus_pushgateway_url
 
 # Optional dashboard HTTP API (see "Dashboard API" below). Off unless BOT_API_KEY is set.
 BOT_API_KEY=a_long_random_secret
+BOT_API_HOST=127.0.0.1
 BOT_API_PORT=8080
 ```
 
@@ -364,7 +365,8 @@ cache and never calls Discord's REST API.
 | Variable | Default | What it does |
 |----------|---------|--------------|
 | `BOT_API_KEY` | (unset) | Shared secret the dashboard sends. With no key the API does not start, and the bot runs as normal |
-| `BOT_API_PORT` | `8080` | Preferred port. The server binds to `0.0.0.0` |
+| `BOT_API_HOST` | `127.0.0.1` | Address to bind. Loopback only by default, for a local tunnel or reverse proxy; set `0.0.0.0` to listen on every interface |
+| `BOT_API_PORT` | `8080` | Preferred port |
 
 Generate a key with `python3 -c "import secrets; print(secrets.token_urlsafe(32))"`.
 

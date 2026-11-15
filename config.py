@@ -27,6 +27,7 @@ class Config:
     kuma_push_url = _env("KUMA_PUSH_URL")
     pushgateway_url = _env("PUSHGATEWAY_URL")
     bot_api_key = _env("BOT_API_KEY")
+    bot_api_host = _env("BOT_API_HOST")
     bot_api_port = _env("BOT_API_PORT")
     prefix = "."
 

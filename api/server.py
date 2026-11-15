@@ -8,8 +8,12 @@ from api.middleware import auth_middleware, error_middleware
 from api.routes import setup_routes
 from config import config
 
-HOST = "0.0.0.0"
+# loopback by default: the API speaks plain HTTP, so it is meant to be reached
+# through a local tunnel or reverse proxy. BOT_API_HOST=0.0.0.0 exposes it directly.
+DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8080
+# shorter keys are accepted but warned about; secrets.token_urlsafe(32) gives 43 chars
+MIN_KEY_LENGTH = 32
 # ports tried after the preferred one before letting the OS pick any free port
 PORT_ATTEMPTS = 20
 MAX_BODY_BYTES = 64 * 1024
@@ -49,11 +53,11 @@ def _candidate_ports(preferred: int) -> list[int]:
     return ports + [0]
 
 
-async def _bind(runner: web.AppRunner, preferred: int) -> int:
+async def _bind(runner: web.AppRunner, host: str, preferred: int) -> int:
     """Bind the first free candidate port and return the port actually in use."""
     last_err: OSError | None = None
     for port in _candidate_ports(preferred):
-        site = web.TCPSite(runner, HOST, port)
+        site = web.TCPSite(runner, host, port)
         try:
             await site.start()
         except OSError as err:
@@ -85,6 +89,10 @@ async def start_api(bot: discord.Bot) -> None:
         print("[api] BOT_API_KEY isn't set in .env; the HTTP API is disabled")
         return
 
+    if len(config.bot_api_key) < MIN_KEY_LENGTH:
+        print(f"[api] warning: BOT_API_KEY is under {MIN_KEY_LENGTH} characters; use a longer random key")
+
+    host = config.bot_api_host or DEFAULT_HOST
     port = _port()
     if port is None:
         print("[api] BOT_API_PORT must be a number between 1 and 65535; the HTTP API is disabled")
@@ -95,9 +103,9 @@ async def start_api(bot: discord.Bot) -> None:
         # access_log=None: nothing about requests (headers included) is ever logged
         runner = web.AppRunner(create_app(bot, config.bot_api_key), access_log=None)
         await runner.setup()
-        bound = await _bind(runner, port)
+        bound = await _bind(runner, host, port)
     except Exception as err:
-        print(f"[api] failed to start on {HOST} (tried from port {port}): {err!r}")
+        print(f"[api] failed to start on {host} (tried from port {port}): {err!r}")
         if runner is not None:
             try:
                 await runner.cleanup()
@@ -109,7 +117,7 @@ async def start_api(bot: discord.Bot) -> None:
     _write_port_file(bound)
     if bound != port:
         print(f"[api] port {port} was busy")
-    print(f"[api] listening on {HOST}:{bound}")
+    print(f"[api] listening on {host}:{bound}")
 
 
 async def stop_api() -> None:
